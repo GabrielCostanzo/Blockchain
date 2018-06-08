@@ -48,7 +48,7 @@ def save_block(block):
 		f.write(gzip.compress(pick_block))
 """
 
-def obj_compress(obj):
+def obj_to_compressed(obj):
 	pickled_block = pickle.dumps(obj)
 	compressed = gzip.compress(pickled_block)
 	return compressed
@@ -75,18 +75,6 @@ def update_chain_point():
 	#update wallet with inputs 
 	#archive new save point
 	print(block_point)
-
-
-save_block(test_gen_block)
-save_block(test_reg_block)
-save_block(test_reg_2_block)
-save_block(test_reg_3_block)
-#update_chain_point()
-
-print_block(test_reg_2_block)
-
-
-
 
 #Establish connection to the database
 connection_one = pymysql.connect(host='localhost', port=3306, user='root', passwd='1Gia2Harley',
@@ -118,11 +106,40 @@ for i in range(1):
 	alice.create_transaction(carl.serialized_public, 10, 5)
 
 test_gen_block = chain.genesis_block(alice.serialized_public, 0)
-test_reg_block = chain.block(test_gen_block, alice.pending_output_transactions, alice.serialized_public, 0)
-test_reg_2_block = chain.block(test_reg_block, alice.pending_output_transactions, alice.serialized_public, 0)
-test_reg_3_block = chain.block(test_reg_2_block, alice.pending_output_transactions, alice.serialized_public, 0)
+#test_reg_block = chain.block(test_gen_block, alice.pending_output_transactions, alice.serialized_public, 0)
+#test_reg_2_block = chain.block(test_reg_block, alice.pending_output_transactions, alice.serialized_public, 0)
+#test_reg_3_block = chain.block(test_reg_2_block, alice.pending_output_transactions, alice.serialized_public, 0)
 
 
-ver = block_verification.verify_block(compressed_block_2, compressed_block_3)
+#ver = block_verification.verify_block(compressed_block_2, compressed_block_3)
+#block_verification.verify_block_transactions(compressed_block_2)
 
-block_verification.verify_block_transactions(compressed_block_2)
+def insert_block(block_obj):
+	connection_one = pymysql.connect(host='localhost', port=3306, user='root', passwd='1Gia2Harley', db='blockchain', autocommit = True)
+	#Create cursors to interact with the databases
+	cur_1 = connection_one.cursor()
+	print("\nheader_tbl data:")
+	print(block_obj.height)
+	print(block_obj.block_hash)
+	print(block_obj.total_output)
+	print(block_obj.transaction_fees)
+	print(block_obj.previous_block_hash)
+	print(block_obj.merkle_root)
+	print(block_obj.nonce)
+	print(block_obj.timestamp)
+
+	print("\nblock_tbl data:")
+	print(block_obj.height)
+	print(str(pickle.dumps(block_obj)))
+	#print(obj_to_compressed(block_obj))
+
+	#compressed_block = obj_to_compressed(block_obj)
+	cur_1.execute("INSERT INTO BLOCK_TBL VALUES ('%s', '%s')"%(8, str(pickle.dumps(block_obj))))
+
+	#cur_1.execute("INSERT INTO HEADER_TBL VALUES ('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s')"%(block_obj.height, block_obj.block_hash, block_obj.total_output, block_obj.transaction_fees, block_obj.previous_block_hash, block_obj.merkle_root, block_obj.nonce, block_obj.timestamp))
+
+insert_block(test_gen_block)
+
+
+
+
