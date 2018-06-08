@@ -8,34 +8,10 @@ from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives import hashes
 
 import chain
-
+import block_verification
 
 import gzip
-
-alice = user.wallet()
-bob = user.wallet()
-carl = user.wallet()
-dave = user.wallet()
-
-for i in range(1):
-	alice.create_transaction(bob.serialized_public, 100000, 5)
-	alice.create_transaction(carl.serialized_public, 10, 5)
-	alice.create_transaction(bob.serialized_public, 10, 5)
-	alice.create_transaction(carl.serialized_public, 500, 50)
-	alice.create_transaction(bob.serialized_public, 10, 5)
-	alice.create_transaction(carl.serialized_public, 90000, 5)
-	alice.create_transaction(bob.serialized_public, 10000000, 600)
-	alice.create_transaction(carl.serialized_public, 10, 3)
-	alice.create_transaction(bob.serialized_public, 10, 5)
-	alice.create_transaction(carl.serialized_public, 10, 5)
-
-test_gen_block = chain.genesis_block(alice.serialized_public, 0)
-test_reg_block = chain.block(test_gen_block, alice.pending_output_transactions, alice.serialized_public, 0)
-test_reg_2_block = chain.block(test_reg_block, alice.pending_output_transactions, alice.serialized_public, 0)
-test_reg_3_block = chain.block(test_reg_2_block, alice.pending_output_transactions, alice.serialized_public, 0)
-
-
-
+import pymysql
 
 def print_block(block_object):
 	print("GEN_BLOCK:\n\n\n")
@@ -64,34 +40,23 @@ def print_block(block_object):
 	print("\nminer public key:")
 	print(block_object.miner_public_key)
 	print("\n")
-
-
-#with open("blockchain.txt", "wb") as file:
-#	file.write(pickled_block)
-
+"""
 def save_block(block):
 	height = block.height
 	pick_block = pickle.dumps(block)
 	with open('%s.txt'%height, 'wb') as f:
 		f.write(gzip.compress(pick_block))
-
-
-#print(pickle.loads(y).block_hash)
-
-
-import block_verification
-"""
-pickled_block_2 = (pickle.dumps(test_reg_2_block))
-pickled_block_3 = (pickle.dumps(test_reg_3_block))
-
-compressed_block_2 = gzip.compress(pickled_block_2)
-compressed_block_3 = gzip.compress(pickled_block_3)
-
-ver = block_verification.verify_block(compressed_block_2, compressed_block_3)
-
-block_verification.verify_block_transactions(compressed_block_2)
 """
 
+def obj_compress(obj):
+	pickled_block = pickle.dumps(obj)
+	compressed = gzip.compress(pickled_block)
+	return compressed
+
+def compressed_to_obj(compressed):
+	decompressed = gzip.decompressed(compressed)
+	obj = pickle.loads(decompressed)
+	return obj
 
 def record_inputs():
 	pass
@@ -122,3 +87,42 @@ print_block(test_reg_2_block)
 
 
 
+
+#Establish connection to the database
+connection_one = pymysql.connect(host='localhost', port=3306, user='root', passwd='1Gia2Harley',
+ db='blockchain', autocommit = True)
+#Create cursors to interact with the databases
+cur_1 = connection_one.cursor()
+#cur_1.execute("INSERT INTO PRE_FLOP_TBL VALUES ('%s', '%s')"%(float(botoplist[-1])*.01,  float(botopgroups[-1])*.01))
+
+cur_1.execute("SELECT * FROM BLOCK_TBL")
+for i in cur_1:
+	print(i)
+
+
+alice = user.wallet()
+bob = user.wallet()
+carl = user.wallet()
+dave = user.wallet()
+
+for i in range(1):
+	alice.create_transaction(bob.serialized_public, 100000, 5)
+	alice.create_transaction(carl.serialized_public, 10, 5)
+	alice.create_transaction(bob.serialized_public, 10, 5)
+	alice.create_transaction(carl.serialized_public, 500, 50)
+	alice.create_transaction(bob.serialized_public, 10, 5)
+	alice.create_transaction(carl.serialized_public, 90000, 5)
+	alice.create_transaction(bob.serialized_public, 10000000, 600)
+	alice.create_transaction(carl.serialized_public, 10, 3)
+	alice.create_transaction(bob.serialized_public, 10, 5)
+	alice.create_transaction(carl.serialized_public, 10, 5)
+
+test_gen_block = chain.genesis_block(alice.serialized_public, 0)
+test_reg_block = chain.block(test_gen_block, alice.pending_output_transactions, alice.serialized_public, 0)
+test_reg_2_block = chain.block(test_reg_block, alice.pending_output_transactions, alice.serialized_public, 0)
+test_reg_3_block = chain.block(test_reg_2_block, alice.pending_output_transactions, alice.serialized_public, 0)
+
+
+ver = block_verification.verify_block(compressed_block_2, compressed_block_3)
+
+block_verification.verify_block_transactions(compressed_block_2)
