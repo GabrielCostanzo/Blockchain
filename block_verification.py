@@ -4,6 +4,9 @@ from chain import merkle_node
 from user import encrypt_key
 from user import sign 
 from user import master_key
+import json
+from user import transaction
+from chain import coinbase_transaction
 
 def generate_merkle_root(transaction_pool):
 	temp_list = []
@@ -47,9 +50,11 @@ def verify_block(json_previous_block, json_block):
 
 	transaction_list = []
 	for i in given_transactions:
-		transaction_list.append(i["transaction_data"])
-		#print(pickle.loads(i["transaction_data"].encode('latin1')))
-
+		good_transaction = verify_block_transactions(given_transactions[3])
+		if good_transaction == True:
+			transaction_list.append(i["transaction_data"])
+		else:
+			return False
 
 	target_merkle_root = generate_merkle_root(transaction_list)
 	target_height = (json_previous_block["height"]) + 1
@@ -81,13 +86,28 @@ def verify_block(json_previous_block, json_block):
 		return True
 
 
-def verify_block_transactions(compressed_block):
-	decompressed_block = gzip.decompress(compressed_block) 
-	block_object = pickle.loads(decompressed_block)
+def verify_block_transactions(transaction):
+	print(json.dumps(transaction, sort_keys=False, indent=4, separators=(',', ': ')))
+	transaction_obj = (pickle.loads(transaction["transaction_data"].encode('latin1')))
+	
+	coinbase_required_depth = 100
+	correct_obj = False
+	correct_sig = False
+	included_sig = False
 
-	transaction_object_list = []
-	for i in block_object.transactions:
-		transaction_object_list.append(pickle.loads(i))
+	if isinstance(transaction_obj, coinbase_transaction) or isinstance(transaction_obj, coinbase_transaction):
+		correct_obj = True
+	else: 
+		correct_obj = False
 
-	#for i in transaction_object_list:
-	#	print(i)
+	print(transaction_obj.sender_sig)
+	#print(transaction_obj.transaction_data)
+	print(transaction_obj.sender_public_key)
+	print(transaction_obj.receiver_public_key)
+	print(transaction_obj.input_amount)
+	print(transaction_obj.fees)
+	print(transaction_obj.output_amount)
+	print(transaction_obj.input_transactions)
+	print(transaction_obj.status)
+	print(transaction_obj.txid)
+	print(transaction_obj.timestamp)

@@ -100,7 +100,10 @@ for i in range(1):
 	alice.create_transaction(bob.serialized_public, 100000, 5)
 	alice.create_transaction(carl.serialized_public, 10, 5)
 	alice.create_transaction(bob.serialized_public, 10, 5)
-
+	alice.create_transaction(bob.serialized_public, 100000, 5)
+	alice.create_transaction(carl.serialized_public, 10, 5)
+	alice.create_transaction(bob.serialized_public, 10, 5)
+	
 test_gen_block = chain.genesis_block(alice.serialized_public, 0)
 test_reg_block = chain.block(test_gen_block, alice.pending_output_transactions, alice.serialized_public, 0)
 test_reg_2_block = chain.block(test_reg_block, alice.pending_output_transactions, alice.serialized_public, 0)
@@ -141,7 +144,7 @@ def insert_block(block_obj):
 
 #genesis_to_json(test_gen_block)
 
-#print((block_to_json(test_gen_block)))
+print((block_to_json(test_gen_block)))
 
 one = json.loads(block_to_json(test_gen_block))
 two = json.loads(block_to_json(test_reg_block))
@@ -161,6 +164,6 @@ four = json.loads(block_to_json(test_reg_3_block))
 #print(t2)
 
 
-ver = block_verification.verify_block(one, two)
+ver = block_verification.verify_block(two, three)
 #block_verification.verify_block_transactions(compressed_block_2)
 print(ver)
