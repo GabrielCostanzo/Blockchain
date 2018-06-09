@@ -42,7 +42,7 @@ class transaction():
 		self.timestamp = datetime.datetime.now()
 
 	def update_data(self, data):
-		self.transaction_data = data
+		self.transaction_data = data.decode('latin1')
 
 	def update_sig(self, signature):
 		self.sender_sig = signature

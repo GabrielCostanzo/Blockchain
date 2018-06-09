@@ -23,7 +23,7 @@ def transaction_to_json(transaction_obj):
 		sort_keys=True, indent=4, separators=(',', ': ')))
 		"""
 
-		json_transaction = json.dumps({"sender_sig": transaction_obj.sender_sig.decode('latin1'),  "transaction_data": transaction_obj.transaction_data.decode('latin1'),
+		json_transaction = json.dumps({"sender_sig": transaction_obj.sender_sig.decode('latin1'),  "transaction_data": transaction_obj.transaction_data,
 		"sender_public_key": transaction_obj.sender_public_key.decode('UTF-8'), "receiver_public_key": transaction_obj.receiver_public_key.decode('UTF-8'), "input_amount": transaction_obj.input_amount, "fees": transaction_obj.fees,
 		"output_amount": transaction_obj.output_amount, "input_transactions": transaction_obj.input_transactions, "status": transaction_obj.status, "txid": transaction_obj.txid.decode('UTF-8'), "timestamp": str(transaction_obj.timestamp)},
 		sort_keys=False, indent=4, separators=(',', ': '))

@@ -10,10 +10,9 @@ def generate_merkle_root(transaction_pool):
 	node_parent = None
 	c1 = None
 	c2 = None
-
 	#print("concat layer:", layer)
 	if len(transaction_pool) == 1:
-		merkle_root = transaction_pool[0].encode('UTF-8')
+		merkle_root = encrypt_key(transaction_pool[0], master_key).encode('UTF-8')
 		return merkle_root
 
 	for i in range(0, len(transaction_pool) - 1, 2):
@@ -46,12 +45,13 @@ def verify_block(json_previous_block, json_block):
 	given_nonce = json_block["nonce"].encode('UTF-8')
 	given_transactions = json_block["transactions"]
 
-	txid_list = []
+	transaction_list = []
 	for i in given_transactions:
-		txid_list.append(i["txid"])
+		transaction_list.append(i["transaction_data"])
+		#print(pickle.loads(i["transaction_data"].encode('latin1')))
 
 
-	target_merkle_root = generate_merkle_root(txid_list)
+	target_merkle_root = generate_merkle_root(transaction_list)
 	target_height = (json_previous_block["height"]) + 1
 	target_zeros  = '00000'
 	target_hash_base = previous_block_hash+target_merkle_root+given_nonce
