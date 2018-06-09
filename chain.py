@@ -11,6 +11,7 @@ class coinbase_transaction(transaction):
 	def __init__(self, sender_public_key, receiver_public_key, input_amount, fees, block_height):
 		transaction.__init__(self, sender_public_key, receiver_public_key, input_amount, fees)
 		self.block_height = block_height
+		self.status = "coinbase"
 
 		def reward_calculator(self, block_height):
 			base_reward = 50
@@ -43,7 +44,7 @@ class genesis_block():
 
 		self.timestamp = datetime.datetime.now() 
 
-		self.transactions = self.coinbase_transaction
+		self.transactions = [self.coinbase_transaction]
 
 		self.miner_public_key = miner_public_key
 

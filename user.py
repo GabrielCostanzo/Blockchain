@@ -35,16 +35,11 @@ class transaction():
 
 		self.input_transactions = []
 
-		##############################
-		self.coinbase_reference = None
-		self.block = None
-		##############################
-
 		self.status = "Requires Signature"
 
 		self.txid = None
 
-		self.time_stamp = datetime.datetime.now()
+		self.timestamp = datetime.datetime.now()
 
 	def update_data(self, data):
 		self.transaction_data = data
@@ -54,7 +49,7 @@ class transaction():
 		self.status = "Signed" 
 
 	def update_txid(self, txid):
-		self.txid = txid
+		self.txid = txid.encode('UTF-8')
 
 	#def __str__(self):
 	#	return "\nsender_sig: %s\ntransaction_data: %s\n\nsender_public_key (serialized): %s\nreceiver_public_key (serialized): %s\n\ninput_amount: %s\nfees: %s\noutput_amount: %s\n\nstatus: %s" % (self.sender_sig, self.transaction_data, self.sender_public_key, self.receiver_public_key, self.input_amount, self.fees, self.output_amount, self.status)
