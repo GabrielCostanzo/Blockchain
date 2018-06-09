@@ -12,6 +12,8 @@ class coinbase_transaction(transaction):
 		transaction.__init__(self, sender_public_key, receiver_public_key, input_amount, fees)
 		self.block_height = block_height
 		self.status = "coinbase"
+		self.txid = encrypt_key(pickle.dumps(self), master_key).encode('UTF-8')
+		#print(self.txid)
 
 		def reward_calculator(self, block_height):
 			base_reward = 50
@@ -118,13 +120,16 @@ class block():
 			c2 = None
 			#print("concat layer:", layer)
 			if len(transaction_pool) == 1:
-				self.merkle_root = encrypt_key(transaction_pool[0], master_key).encode('UTF-8')
+				self.merkle_root = encrypt_key(transaction_pool[0], master_key).encode('UTF-8')			
 			else:
 				for i in range(0, len(transaction_pool) - 1, 2):
 					try:
-						c1 = transaction_pool[i].encode('UTF-8')
-						c2 = transaction_pool[i + 1].encode('UTF-8')
+						c1 = pickle.loads(transaction_pool[i]).txid.encode('UTF-8')
+						c2 = pickle.loads(transaction_pool[i + 1]).txid.encode('UTF-8')
 					except AttributeError:
+						c1 = pickle.loads(transaction_pool[i]).txid
+						c2 = pickle.loads(transaction_pool[i + 1]).txid
+					except TypeError:
 						c1 = transaction_pool[i]
 						c2 = transaction_pool[i + 1]
 					try:

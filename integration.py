@@ -13,7 +13,8 @@ import block_verification
 import gzip
 import pymysql
 
-import json_serialize
+from json_serialize import block_to_json
+from json_serialize import transaction_to_json
 
 def print_block(block_object):
 	print("GEN_BLOCK:\n\n\n")
@@ -79,10 +80,10 @@ def update_chain_point():
 	print(block_point)
 
 #Establish connection to the database
-connection_one = pymysql.connect(host='localhost', port=3306, user='root', passwd='1Gia2Harley',
- db='blockchain', autocommit = True)
+#connection_one = pymysql.connect(host='localhost', port=3306, user='root', passwd='1Gia2Harley',
+# db='blockchain', autocommit = True)
 #Create cursors to interact with the databases
-cur_1 = connection_one.cursor()
+#cur_1 = connection_one.cursor()
 #cur_1.execute("INSERT INTO PRE_FLOP_TBL VALUES ('%s', '%s')"%(float(botoplist[-1])*.01,  float(botopgroups[-1])*.01))
 """
 cur_1.execute("SELECT * FROM BLOCK_TBL")
@@ -106,8 +107,6 @@ test_reg_2_block = chain.block(test_reg_block, alice.pending_output_transactions
 test_reg_3_block = chain.block(test_reg_2_block, alice.pending_output_transactions, alice.serialized_public, 0)
 
 
-#ver = block_verification.verify_block(compressed_block_2, compressed_block_3)
-#block_verification.verify_block_transactions(compressed_block_2)
 
 #compressed_b = obj_to_compressed(test_gen_block)
 import json
@@ -141,29 +140,27 @@ def insert_block(block_obj):
 
 
 #genesis_to_json(test_gen_block)
-one = block_to_json(test_gen_block)
-two = block_to_json(test_reg_block)
-three = block_to_json(test_reg_2_block)
-four = block_to_json(test_reg_3_block)
+
+#print((block_to_json(test_gen_block)))
+
+one = json.loads(block_to_json(test_gen_block))
+two = json.loads(block_to_json(test_reg_block))
+three = json.loads(block_to_json(test_reg_2_block))
+four = json.loads(block_to_json(test_reg_3_block))
 
 #print(two)
 
-x = json.dumps({'4': 5, '6': 7}, sort_keys=True, indent=4, separators=(',', ': '))
 
-t1 = json.loads(two)["transactions"][1]["sender_sig"].encode('latin1')
-t2 = json.loads(two)["transactions"][1]["transaction_data"].encode('latin1')
-
-print(t1)
-print(t2)
+#x = json.dumps({'4': 5, '6': 7}, sort_keys=True, indent=4, separators=(',', ': '))
 
 
-"""
+#t1 = one["transactions"][0]["txid"]
+#t2 = json.loads(two)["transactions"][1]["transaction_data"].encode('latin1')
 
-test_transaction = transaction(sally.serialized_public, sally.serialized_public, 5, 2)
+#print(t1)
+#print(t2)
 
-sally.create_transaction(sally.serialized_public, 5, 2)
 
-print(sally.transaction_pool[0])
-
-"""
-print(alice.public_key.verify(t1, t2, ec.ECDSA(hashes.SHA256())))
+ver = block_verification.verify_block(one, two)
+#block_verification.verify_block_transactions(compressed_block_2)
+print(ver)

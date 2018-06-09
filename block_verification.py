@@ -10,9 +10,10 @@ def generate_merkle_root(transaction_pool):
 	node_parent = None
 	c1 = None
 	c2 = None
+
 	#print("concat layer:", layer)
 	if len(transaction_pool) == 1:
-		merkle_root = encrypt_key(transaction_pool[0], master_key).encode('UTF-8')
+		merkle_root = transaction_pool[0].encode('UTF-8')
 		return merkle_root
 
 	for i in range(0, len(transaction_pool) - 1, 2):
@@ -39,41 +40,39 @@ def generate_merkle_root(transaction_pool):
 		return generate_merkle_root(temp_list)
 
 
-def verify_block(compressed_previous_block, compressed_block):
-	decompressed_previous_block = gzip.decompress(compressed_previous_block) 
-	previous_block_object = pickle.loads(decompressed_previous_block)
+def verify_block(json_previous_block, json_block):
+	previous_block_hash = json_previous_block["block_hash"].encode('UTF-8')
 
-	decompressed_block = gzip.decompress(compressed_block) 
-	block_object = pickle.loads(decompressed_block)
+	given_nonce = json_block["nonce"].encode('UTF-8')
+	given_transactions = json_block["transactions"]
 
-	previous_block_hash = previous_block_object.block_hash
-
-	given_nonce = block_object.nonce
-	given_transactions = block_object.transactions
+	txid_list = []
+	for i in given_transactions:
+		txid_list.append(i["txid"])
 
 
-	target_merkle_root = generate_merkle_root(given_transactions)
-	target_height = previous_block_object.height + 1
+	target_merkle_root = generate_merkle_root(txid_list)
+	target_height = (json_previous_block["height"]) + 1
 	target_zeros  = '00000'
 	target_hash_base = previous_block_hash+target_merkle_root+given_nonce
 	target_hash = encrypt_key(target_hash_base, master_key).encode('UTF-8')
 
 	confirmation_list = [False, False, False, False]
 
-	if block_object.merkle_root == target_merkle_root:
+	if json_block["merkle_root"].encode('UTF-8') == target_merkle_root:
 		confirmation_list[0] = True
-	if target_height == block_object.height:
+	if target_height == json_block["height"]:
 		confirmation_list[1] = True
 
 	zero_count = 0 
 	for i in range(len(target_zeros)):
-		if chr(block_object.block_hash[i]) == '0':
+		if json_block["block_hash"][i] == '0':
 			zero_count += 1
 
 	if zero_count == len(target_zeros):
 		confirmation_list[2] = True
 
-	if target_hash == block_object.block_hash:
+	if target_hash == json_block["block_hash"].encode('UTF-8'):
 		confirmation_list[3] = True
 
 	if False in confirmation_list:
