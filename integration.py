@@ -144,7 +144,7 @@ def insert_block(block_obj):
 
 #genesis_to_json(test_gen_block)
 
-print((block_to_json(test_gen_block)))
+#print((block_to_json(test_reg_block)))
 
 one = json.loads(block_to_json(test_gen_block))
 two = json.loads(block_to_json(test_reg_block))
@@ -166,4 +166,4 @@ four = json.loads(block_to_json(test_reg_3_block))
 
 ver = block_verification.verify_block(two, three)
 #block_verification.verify_block_transactions(compressed_block_2)
-print(ver)
+#print(ver)

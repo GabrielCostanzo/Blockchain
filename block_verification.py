@@ -7,6 +7,10 @@ from user import master_key
 import json
 from user import transaction
 from chain import coinbase_transaction
+from cryptography.hazmat.primitives.asymmetric import ec
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.backends import default_backend
 
 def generate_merkle_root(transaction_pool):
 	temp_list = []
@@ -87,27 +91,59 @@ def verify_block(json_previous_block, json_block):
 
 
 def verify_block_transactions(transaction):
-	print(json.dumps(transaction, sort_keys=False, indent=4, separators=(',', ': ')))
+	#print(json.dumps(transaction, sort_keys=False, indent=4, separators=(',', ': ')))
 	transaction_obj = (pickle.loads(transaction["transaction_data"].encode('latin1')))
 	
-	coinbase_required_depth = 100
 	correct_obj = False
 	correct_sig = False
-	included_sig = False
+	valid_value = True
+	correct_value = True
+	correct_match = True
+
+	sig = transaction["sender_sig"].encode('latin1')
+	transaction_data = transaction["transaction_data"].encode('latin1')
+	serial_pub = (transaction["sender_public_key"].encode('UTF-8'))
+	public_key_obj = serialization.load_pem_public_key(serial_pub, backend=default_backend())
 
 	if isinstance(transaction_obj, coinbase_transaction) or isinstance(transaction_obj, coinbase_transaction):
 		correct_obj = True
-	else: 
-		correct_obj = False
 
-	print(transaction_obj.sender_sig)
-	#print(transaction_obj.transaction_data)
-	print(transaction_obj.sender_public_key)
-	print(transaction_obj.receiver_public_key)
-	print(transaction_obj.input_amount)
-	print(transaction_obj.fees)
-	print(transaction_obj.output_amount)
-	print(transaction_obj.input_transactions)
-	print(transaction_obj.status)
-	print(transaction_obj.txid)
-	print(transaction_obj.timestamp)
+	if (public_key_obj.verify(sig, transaction_data, ec.ECDSA(hashes.SHA256())) == True):
+		correct_sig = True
+
+	json_input_amount = transaction["input_amount"]
+	json_output_amount = transaction["output_amount"]
+	json_fees = transaction["fees"]
+
+	obj_input_amount = transaction_obj.input_amount
+	obj_output_amount = transaction_obj.output_amount
+	obj_fees = transaction_obj.fees
+
+	if (json_input_amount - json_fees) < 0:
+		valid_value = False
+	if (obj_input_amount - obj_fees) < 0:
+		valid_value = False
+
+	if (json_input_amount - json_fees) != json_output_amount:
+		correct_value = False
+	if (obj_input_amount - obj_fees) != obj_output_amount:
+		correct_value = False
+
+
+	if transaction_obj.sender_public_key != transaction["sender_public_key"].encode('UTF-8'):
+		correct_match = False
+	if transaction_obj.receiver_public_key != transaction["receiver_public_key"].encode('UTF-8'):
+		correct_match = False
+	if transaction_obj.input_amount != transaction["input_amount"]:
+		correct_match = False
+	if transaction_obj.fees != transaction["fees"]:
+		correct_match = False
+	if transaction_obj.output_amount != transaction["output_amount"]:
+		correct_match = False
+	if transaction_obj.input_transactions != transaction["input_transactions"]:
+		correct_match = False
+	if str(transaction_obj.timestamp) != transaction["timestamp"]:
+		correct_match = False
+
+
+
