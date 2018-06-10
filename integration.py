@@ -164,6 +164,6 @@ four = json.loads(block_to_json(test_reg_3_block))
 #print(t2)
 
 
-ver = block_verification.verify_block(two, three)
+#ver = block_verification.verify_block(two, three)
 #block_verification.verify_block_transactions(compressed_block_2)
 #print(ver)
