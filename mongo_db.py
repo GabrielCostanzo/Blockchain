@@ -1,40 +1,39 @@
 import pymongo
+import json
+import pprint
+import integration
 
 client = pymongo.MongoClient()
 db = client.test_database
 collection = db.test_collection
 
-import datetime
-#post = {"author": "Mike","text": "My first blog post!",
-#"tags": ["mongodb", "python", "pymongo"],"date": datetime.datetime.utcnow()}
-
+#all posts:
 posts = db.posts
+
+#post id:
 #post_id = posts.insert_one(post).inserted_id
 
-#print(post_id)
+#find:
+#single = posts.find_one({"author": "Mike"})
+#all = posts.find({})
 
-#print(db.collection_names(include_system_collections=False))
-
-
-#x = posts.find_one({"author": "Mike"})
-#print(x)
-
-#import integration
-#import json
-
-#block = integration.two
-
-#print(json.dumps(block))
-
+#integration testing:
+#block_o = integration.one
+#block_tw = integration.two
+#pprint.pprint(json.dumps(block))
 #print(block)
-
-#import pprint
-
-#print("\n\n\n\n\n\n\n\n")
 #pprint.pprint(block)
 
-#block_post = posts.insert_one(block).inserted_id
+#posts.insert_one(block_o)
+#posts.insert_one(block_tw)
 
-#x = posts.find_one({"block_reward": 50})
+#remove all:
+#posts.remove({})
 
-#pprint.pprint(x)
+#count posts:
+#print(posts.count())
+
+all_blocks = posts.find({})
+for i in all_blocks:
+	print("\n\n\n\n\n\n")
+	pprint.pprint(i)

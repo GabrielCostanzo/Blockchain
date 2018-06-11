@@ -60,7 +60,7 @@ def block_to_json(block_obj):
 	sort_keys=True, indent=4, separators=(',', ': ')))
 	"""
 
-	json_obj = json.dumps({"block_hash": block_obj.block_hash.decode('UTF-8'), "height": block_obj.height,
+	json_obj = json.dumps({"_id": block_obj.height, "block_hash": block_obj.block_hash.decode('UTF-8'), "height": block_obj.height,
 	"coinbase_transaction": json.loads(coinbase_json), 
 	"transaction_fees": block_obj.transaction_fees, "block_reward": block_obj.block_reward, "total_output": block_obj.total_output,
 	"previous_block_hash": block_obj.previous_block_hash.decode('UTF-8'), "merkle_root": block_obj.merkle_root.decode('UTF-8'),
