@@ -49,7 +49,6 @@ def save_block(block):
 	pick_block = pickle.dumps(block)
 	with open('test.txt', 'wb') as f:
 		f.write((pick_block))
-"""
 
 def obj_to_compressed(obj):
 	pickled_block = pickle.dumps(obj)
@@ -78,6 +77,7 @@ def update_chain_point():
 	#update wallet with inputs 
 	#archive new save point
 	print(block_point)
+"""
 
 #Establish connection to the database
 #connection_one = pymysql.connect(host='localhost', port=3306, user='root', passwd='1Gia2Harley',
