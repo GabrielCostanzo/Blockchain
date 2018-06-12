@@ -19,7 +19,7 @@ posts = db.posts
 
 #integration testing:
 #block_o = integration.one
-#block_tw = integration.two
+block_tw = integration.two
 #pprint.pprint(json.dumps(block))
 #print(block)
 #pprint.pprint(block)
@@ -37,3 +37,6 @@ all_blocks = posts.find({})
 for i in all_blocks:
 	print("\n\n\n\n\n\n")
 	pprint.pprint(i)
+
+with open("test_json_bock.json", "w") as json_file:
+	json.dump(block_tw, json_file)

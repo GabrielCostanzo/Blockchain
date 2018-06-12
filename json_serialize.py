@@ -69,3 +69,9 @@ def block_to_json(block_obj):
 
 	return json_obj
 
+def wallet_to_json(wallet_obj):
+	json_wallet = json.dumps({"serialized_private": wallet_obj.serialized_private.decode('UTF-8'),
+		"serialized_public": wallet_obj.serialized_public.decode('UTF-8'), "pending_output_transactions": wallet_obj.pending_output_transactions,
+		"confirmed_output_transactions": wallet_obj.confirmed_output_transactions, "unspent_input_transactions": wallet_obj.unspent_input_transactions,
+		"spent_input_transactions": wallet_obj.spent_input_transactions})
+	return json_wallet
