@@ -121,7 +121,7 @@ class block():
 			c2 = None
 			#print("concat layer:", layer)
 			if len(transaction_pool) == 1:
-				self.merkle_root = encrypt_key(transaction_pool[0], master_key).encode('UTF-8')
+				self.merkle_root = encrypt_key(self.coinbase_transaction, master_key).encode('UTF-8')
 			else:
 				for i in range(0, len(transaction_pool) - 1, 2):
 					try:

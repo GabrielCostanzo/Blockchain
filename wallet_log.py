@@ -12,7 +12,7 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 
 
-def user_options():
+def user_login():
 	valid_selection = False
 	pass_conf = False
 	while valid_selection == False:
@@ -47,7 +47,7 @@ def user_options():
 					created_wallet = wallet()
 					json_wallet = wallet_to_json(created_wallet)
 
-					with open("test_wallet_file", "w") as wallet_file:
+					with open("test_wallet_file.json", "w") as wallet_file:
 						wallet_file.write(json_wallet)
 
 					print("new wallet created!")
@@ -78,10 +78,3 @@ class loaded_wallet(wallet):
 		self.public_key = serialization.load_pem_public_key(self.serialized_public, backend=default_backend())
 
 
-test_wal = loaded_wallet(user_options()) 
-		
-print(test_wal)
-
-bob = wallet()
-
-x = test_wal.create_transaction(bob.serialized_public, 100000, 5)

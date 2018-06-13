@@ -1,8 +1,12 @@
 import user
 import pickle
-
+from wallet_log import user_login
+from wallet_log import loaded_wallet
 from hashlib import blake2b
 from hmac import compare_digest
+import pymongo
+import json
+
 
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives import hashes
@@ -91,34 +95,11 @@ for i in cur_1:
 	print(pickle.loads(i[1]).block_hash)
 """
 
-alice = user.wallet()
-bob = user.wallet()
-carl = user.wallet()
-dave = user.wallet()
-
-for i in range(1):
-	alice.create_transaction(bob.serialized_public, 100000, 5)
-	alice.create_transaction(carl.serialized_public, 10, 5)
-	alice.create_transaction(bob.serialized_public, 10, 5)
-	alice.create_transaction(bob.serialized_public, 100000, 5)
-	alice.create_transaction(carl.serialized_public, 10, 5)
-	alice.create_transaction(bob.serialized_public, 10, 5)
-	
-test_gen_block = chain.genesis_block(alice.serialized_public, 0)
-test_reg_block = chain.block(test_gen_block, alice.pending_output_transactions, alice.serialized_public, 0)
-test_reg_2_block = chain.block(test_reg_block, alice.pending_output_transactions, alice.serialized_public, 0)
-test_reg_3_block = chain.block(test_reg_2_block, alice.pending_output_transactions, alice.serialized_public, 0)
-
-
-
-#compressed_b = obj_to_compressed(test_gen_block)
-import json
-
-
+"""
 def insert_block(block_obj):
 	json_header = json.dumps([block_obj.height, str(block_obj.block_hash.decode('UTF-8')), block_obj.total_output, block_obj.transaction_fees, str(block_obj.previous_block_hash.decode('UTF-8')), str(block_obj.merkle_root.decode('UTF-8')), str(block_obj.nonce.decode('UTF-8')), str(block_obj.timestamp)])
 	print(json_header)
-"""
+
 	pickled = pickle.dumps(block_obj)
 	print(pickled)
 	print("\n\n\n")
@@ -146,14 +127,6 @@ def insert_block(block_obj):
 
 #print((block_to_json(test_reg_block)))
 
-one = json.loads(block_to_json(test_gen_block))
-two = json.loads(block_to_json(test_reg_block))
-three = json.loads(block_to_json(test_reg_2_block))
-four = json.loads(block_to_json(test_reg_3_block))
-
-#print(two)
-
-
 #x = json.dumps({'4': 5, '6': 7}, sort_keys=True, indent=4, separators=(',', ': '))
 
 
@@ -167,3 +140,68 @@ four = json.loads(block_to_json(test_reg_3_block))
 #ver = block_verification.verify_block(two, three)
 #block_verification.verify_block_transactions(compressed_block_2)
 #print(ver)
+
+client = pymongo.MongoClient()
+db = client.database
+
+#collection named posts:
+blocks = db.blocks
+utxo_pool = db.utxo_pool
+
+#posts.insert_one(block_o)
+#posts.insert_one(block_tw)
+
+#single = posts.find_one({"author": "Mike"})
+
+#remove all:
+#posts.remove({})
+
+
+alice = user.wallet()
+bob = user.wallet()
+gabe = loaded_wallet(user_login()) 
+
+#for i in range(1):
+#	gabe.create_transaction(bob.serialized_public, 15, 5)
+	
+#test_gen_block = chain.genesis_block(gabe.serialized_public, 0)
+#test_reg_block = chain.block(test_gen_block, gabe.pending_output_transactions, gabe.serialized_public, 0)
+#test_reg_2_block = chain.block(test_reg_block, gabe.pending_output_transactions, gabe.serialized_public, 0)
+#test_reg_3_block = chain.block(test_reg_2_block, gabe.pending_output_transactions, gabe.serialized_public, 0)
+
+#zero = json.loads(block_to_json(test_gen_block))
+#one = json.loads(block_to_json(test_reg_block))
+#two = json.loads(block_to_json(test_reg_2_block))
+#three = json.loads(block_to_json(test_reg_3_block))
+
+#blocks.insert_one(zero)
+#blocks.remove({})
+
+def mine(prev_block):
+	if blocks.find_one({"_id": 0}) == None:
+		block = chain.genesis_block(gabe.serialized_public, 0)
+		blocks.insert_one(json.loads(block_to_json(block)))
+		print(blocks.count)
+	else:
+		block = chain.block(prev_block, gabe.pending_output_transactions, gabe.serialized_public, 0)
+		blocks.insert_one(json.loads(block_to_json(block)))
+		print(blocks.count())
+
+	return mine(block)
+
+#blocks.insert_one(json.loads(block_to_json(test_gen_block)))
+
+#mine(test_gen_block)
+
+#print(blocks.count())
+
+import pprint
+import time 
+
+for i in range(0, blocks.count()):
+	current = blocks.find_one({"_id": i})
+	for j in current["transactions"]:
+		if (j["receiver_public_key"].encode('UTF-8') == gabe.serialized_public):
+			print([j["txid"], j["output_amount"]])
+
+#print(blocks.find_one({"_id": 0})["transactions"])

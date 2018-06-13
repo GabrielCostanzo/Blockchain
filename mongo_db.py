@@ -7,7 +7,7 @@ client = pymongo.MongoClient()
 db = client.test_database
 collection = db.test_collection
 
-#all posts:
+#collection named posts:
 posts = db.posts
 
 #post id:
@@ -38,5 +38,5 @@ for i in all_blocks:
 	print("\n\n\n\n\n\n")
 	pprint.pprint(i)
 
-with open("test_json_bock.json", "w") as json_file:
+with open("test_json_block.json", "w") as json_file:
 	json.dump(block_tw, json_file)
