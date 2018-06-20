@@ -33,13 +33,14 @@ class transaction():
 		self.fees = fees
 		self.output_amount = input_amount - fees
 
-		self.input_transactions = []
+		self.input_transactions = None
 
 		self.status = "Requires Signature"
 
 		self.txid = None
 
 		self.timestamp = datetime.datetime.now()
+
 
 	def update_data(self, data):
 		self.transaction_data = data.decode('latin1')
@@ -50,6 +51,8 @@ class transaction():
 
 	def update_txid(self, txid):
 		self.txid = txid.encode('UTF-8')
+
+
 
 	#def __str__(self):
 	#	return "\nsender_sig: %s\ntransaction_data: %s\n\nsender_public_key (serialized): %s\nreceiver_public_key (serialized): %s\n\ninput_amount: %s\nfees: %s\noutput_amount: %s\n\nstatus: %s" % (self.sender_sig, self.transaction_data, self.sender_public_key, self.receiver_public_key, self.input_amount, self.fees, self.output_amount, self.status)
@@ -71,7 +74,7 @@ class wallet():
 	def sign_transaction(self, data):
 		sig = self.private_key.sign(data, ec.ECDSA(hashes.SHA256()))
 		return sig
-
+"""
 	def create_transaction(self, receiver_public_key, input_amount, fees):
 		new_transaction = transaction(self.serialized_public, receiver_public_key, input_amount, fees)
 		pickled_transaction = pickle.dumps(new_transaction)
@@ -84,7 +87,7 @@ class wallet():
 		self.pending_output_transactions.append(updated_pickled_transaction)
 
 		return new_transaction
-
+"""
 
 """
 sally = wallet()

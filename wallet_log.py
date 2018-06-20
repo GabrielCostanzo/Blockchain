@@ -2,14 +2,24 @@ from user import wallet
 from user import transaction 
 from user import sign
 from user import encrypt_key
+from user import master_key
 import time
 import json
 import pickle
+import pymongo
 from tkinter import Tk
 from tkinter.filedialog import askopenfilename
 from json_serialize import wallet_to_json
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
+
+from tqdm import tqdm 
+
+client = pymongo.MongoClient()
+db = client.database
+
+blocks = db.blocks
+utxo_pool = db.utxo_pool
 
 
 def user_login():
@@ -77,4 +87,44 @@ class loaded_wallet(wallet):
 		self.private_key = serialization.load_pem_private_key(self.serialized_private, password=None ,backend=default_backend())
 		self.public_key = serialization.load_pem_public_key(self.serialized_public, backend=default_backend())
 
+	def update_input_transactions(self):
+		for i in range(0, blocks.count()):
+			current = blocks.find_one({"_id": i})
+			for j in current["transactions"]:
+				if (j["receiver_public_key"].encode('UTF-8') == self.serialized_public and [j["txid"], j["output_amount"]] not in self.unspent_input_transactions):
+					(self.unspent_input_transactions).append([j["txid"], j["output_amount"]])
 
+				if (j["sender_public_key"].encode('UTF-8') == self.serialized_public):
+					for n in j["input_transactions"]:
+						if n in self.unspent_input_transactions:
+							self.unspent_input_transactions.remove(n)
+							self.spent_input_transactions.append(n)
+
+	def set_input_transactions(self, input_val):
+		running_val = 0 
+		input_list = []
+		for i in self.unspent_input_transactions:
+			running_val += i[1]
+			input_list.append(i)
+			if running_val >= input_val:
+				for i in input_list:
+					self.unspent_input_transactions.remove(i)
+					self.spent_input_transactions.append(i)
+				return input_list
+
+
+	def create_transaction(self, receiver_public_key, input_amount, fees):
+		self.update_input_transactions()
+		new_transaction = transaction(self.serialized_public, receiver_public_key, input_amount, fees)
+		new_transaction.input_transactions = self.set_input_transactions(new_transaction.input_amount)
+
+		pickled_transaction = pickle.dumps(new_transaction)
+
+		new_transaction.update_sig(self.sign_transaction(pickled_transaction))
+		new_transaction.update_data(pickled_transaction)
+		new_transaction.update_txid(encrypt_key(pickled_transaction, master_key))
+
+		updated_pickled_transaction = pickle.dumps(new_transaction)
+		self.pending_output_transactions.append(updated_pickled_transaction)
+
+		return new_transaction

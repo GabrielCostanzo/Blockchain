@@ -5,7 +5,7 @@ from user import encrypt_key
 from user import sign 
 from user import master_key
 import json
-from user import transaction
+from user import transaction as t_obj
 from chain import coinbase_transaction
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives import hashes
@@ -54,7 +54,7 @@ def verify_block(json_previous_block, json_block):
 
 	transaction_list = []
 	for i in given_transactions:
-		good_transaction = verify_block_transactions(given_transactions[3])
+		good_transaction = verify_block_transactions(i)
 		if good_transaction == True:
 			transaction_list.append(i["transaction_data"])
 		else:
@@ -93,23 +93,18 @@ def verify_block(json_previous_block, json_block):
 def verify_block_transactions(transaction):
 	#print(json.dumps(transaction, sort_keys=False, indent=4, separators=(',', ': ')))
 	transaction_obj = (pickle.loads(transaction["transaction_data"].encode('latin1')))
-	
+
 	correct_obj = False
-	correct_sig = False
+	correct_sig = True
 	valid_value = True
 	correct_value = True
 	correct_match = True
+	valid_input_value = True
+	running_input_value = 0 
 
-	sig = transaction["sender_sig"].encode('latin1')
 	transaction_data = transaction["transaction_data"].encode('latin1')
 	serial_pub = (transaction["sender_public_key"].encode('UTF-8'))
 	public_key_obj = serialization.load_pem_public_key(serial_pub, backend=default_backend())
-
-	if isinstance(transaction_obj, coinbase_transaction) or isinstance(transaction_obj, coinbase_transaction):
-		correct_obj = True
-
-	if (public_key_obj.verify(sig, transaction_data, ec.ECDSA(hashes.SHA256())) == True):
-		correct_sig = True
 
 	json_input_amount = transaction["input_amount"]
 	json_output_amount = transaction["output_amount"]
@@ -119,31 +114,57 @@ def verify_block_transactions(transaction):
 	obj_output_amount = transaction_obj.output_amount
 	obj_fees = transaction_obj.fees
 
+	if isinstance(transaction_obj, coinbase_transaction) or isinstance(transaction_obj, t_obj):
+		correct_obj = True
+
+	if transaction["status"] == "Signed":
+		sig = transaction["sender_sig"].encode('latin1')
+		if (public_key_obj.verify(sig, transaction_data, ec.ECDSA(hashes.SHA256())) != True):
+			correct_sig = False
+
+		if (json_input_amount - json_fees) != json_output_amount:
+			correct_value = False
+		if (obj_input_amount - obj_fees) != obj_output_amount:
+			correct_value = False
+
+		for i in transaction["input_transactions"]:
+			running_input_value += i[1]
+		if running_input_value < transaction["input_amount"]:
+			valid_input_value = False
+
+
 	if (json_input_amount - json_fees) < 0:
 		valid_value = False
 	if (obj_input_amount - obj_fees) < 0:
 		valid_value = False
 
-	if (json_input_amount - json_fees) != json_output_amount:
-		correct_value = False
-	if (obj_input_amount - obj_fees) != obj_output_amount:
-		correct_value = False
-
-
 	if transaction_obj.sender_public_key != transaction["sender_public_key"].encode('UTF-8'):
 		correct_match = False
+
 	if transaction_obj.receiver_public_key != transaction["receiver_public_key"].encode('UTF-8'):
 		correct_match = False
+
 	if transaction_obj.input_amount != transaction["input_amount"]:
 		correct_match = False
+
 	if transaction_obj.fees != transaction["fees"]:
 		correct_match = False
-	if transaction_obj.output_amount != transaction["output_amount"]:
+
+	if transaction_obj.output_amount != transaction["output_amount"] and transaction["status"] != "coinbase":
 		correct_match = False
+
 	if transaction_obj.input_transactions != transaction["input_transactions"]:
 		correct_match = False
+
 	if str(transaction_obj.timestamp) != transaction["timestamp"]:
 		correct_match = False
+
+	validity_list = [correct_obj, correct_sig, valid_value, correct_value, correct_match, valid_input_value]
+
+	if False in validity_list:
+		return False
+	else:
+		return True
 
 
 

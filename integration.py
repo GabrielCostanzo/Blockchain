@@ -161,8 +161,6 @@ alice = user.wallet()
 bob = user.wallet()
 gabe = loaded_wallet(user_login()) 
 
-#for i in range(1):
-#	gabe.create_transaction(bob.serialized_public, 15, 5)
 	
 #test_gen_block = chain.genesis_block(gabe.serialized_public, 0)
 #test_reg_block = chain.block(test_gen_block, gabe.pending_output_transactions, gabe.serialized_public, 0)
@@ -198,10 +196,48 @@ def mine(prev_block):
 import pprint
 import time 
 
-for i in range(0, blocks.count()):
-	current = blocks.find_one({"_id": i})
-	for j in current["transactions"]:
-		if (j["receiver_public_key"].encode('UTF-8') == gabe.serialized_public):
-			print([j["txid"], j["output_amount"]])
+def gather_coinbase_inputs():
+	for i in range(0, blocks.count()):
+		current = blocks.find_one({"_id": i})
+		for j in current["transactions"]:
+			if (j["receiver_public_key"].encode('UTF-8') == gabe.serialized_public):
+				print([j["txid"], j["output_amount"], j["status"]])
 
+
+#print(gabe.unspent_input_transactions)
+#gabe.update_input_transactions()
+
+
+#pprint.pprint(json.loads(transaction_to_json(x)))
+
+
+#print(gabe.unspent_input_transactions)
+#gather_coinbase_inputs()
 #print(blocks.find_one({"_id": 0})["transactions"])
+
+gabe.create_transaction(bob.serialized_public, 200, 5)
+gabe.create_transaction(bob.serialized_public, 50, 5)
+gabe.create_transaction(bob.serialized_public, 50, 5)
+
+#print("unspent:")
+#print(gabe.unspent_input_transactions)
+#print("\nspent:")
+#print(gabe.spent_input_transactions)
+
+test_gen_block = chain.genesis_block(gabe.serialized_public, 0)
+test_reg_block = chain.block(test_gen_block, gabe.pending_output_transactions, gabe.serialized_public, 0)
+test_reg_2_block = chain.block(test_reg_block, gabe.pending_output_transactions, gabe.serialized_public, 0)
+test_reg_3_block = chain.block(test_reg_2_block, gabe.pending_output_transactions, gabe.serialized_public, 0)
+
+zero = json.loads(block_to_json(test_gen_block))
+one = json.loads(block_to_json(test_reg_block))
+two = json.loads(block_to_json(test_reg_2_block))
+three = json.loads(block_to_json(test_reg_3_block))
+
+
+#pprint.pprint(one)
+
+#ver = block_verification.verify_block(two, three)
+for i in one["transactions"]:
+	block_verification.verify_block_transactions(i)
+#print(ver)
