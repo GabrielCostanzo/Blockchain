@@ -78,9 +78,9 @@ class merkle_node():
 
 
 class block():
-	def __init__(self, previous_block, raw_transactions, miner_public_key, start_nonce):
+	def __init__(self, json_previous_block, raw_transactions, miner_public_key, start_nonce):
 		self.block_hash = None
-		self.height = previous_block.height + 1
+		self.height = json_previous_block["height"] + 1
 
 		self.coinbase_transaction = pickle.dumps(coinbase_transaction(miner_public_key, miner_public_key, 0, 0, self.height))
 		self.block_reward = pickle.loads(self.coinbase_transaction).output_amount
@@ -89,7 +89,7 @@ class block():
 		self.transaction_fees = pickle.loads(self.coinbase_transaction).fees
 
 		self.merkle_root = None
-		self.previous_block_hash = previous_block.block_hash
+		self.previous_block_hash = json_previous_block["block_hash"].encode('UTF-8')
 		self.nonce = None
 
 		self.timestamp = datetime.datetime.now() 

@@ -159,6 +159,10 @@ utxo_pool = db.utxo_pool
 
 alice = user.wallet()
 bob = user.wallet()
+tim = user.wallet()
+zach = user.wallet()
+carl = user.wallet()
+dave = user.wallet()
 gabe = loaded_wallet(user_login()) 
 
 	
@@ -175,17 +179,19 @@ gabe = loaded_wallet(user_login())
 #blocks.insert_one(zero)
 #blocks.remove({})
 
+"""
 def mine(prev_block):
 	if blocks.find_one({"_id": 0}) == None:
 		block = chain.genesis_block(gabe.serialized_public, 0)
 		blocks.insert_one(json.loads(block_to_json(block)))
-		print(blocks.count)
+		print(blocks.count())
 	else:
 		block = chain.block(prev_block, gabe.pending_output_transactions, gabe.serialized_public, 0)
 		blocks.insert_one(json.loads(block_to_json(block)))
 		print(blocks.count())
 
 	return mine(block)
+"""
 
 #blocks.insert_one(json.loads(block_to_json(test_gen_block)))
 
@@ -215,29 +221,83 @@ def gather_coinbase_inputs():
 #gather_coinbase_inputs()
 #print(blocks.find_one({"_id": 0})["transactions"])
 
-gabe.create_transaction(bob.serialized_public, 200, 5)
-gabe.create_transaction(bob.serialized_public, 50, 5)
-gabe.create_transaction(bob.serialized_public, 50, 5)
+gabe.create_transaction(tim.serialized_public, 20, 5.4)
+gabe.create_transaction(zach.serialized_public, 10, 8.8)
+gabe.create_transaction(carl.serialized_public, 15, 4.2)
+gabe.create_transaction(dave.serialized_public, 22, 21)
+
+gabe.create_transaction(tim.serialized_public, 11.5, 0)
+gabe.create_transaction(zach.serialized_public, 6, 5)
+
+gabe.create_transaction(carl.serialized_public, 16, 4)
+
 
 #print("unspent:")
 #print(gabe.unspent_input_transactions)
 #print("\nspent:")
 #print(gabe.spent_input_transactions)
 
-test_gen_block = chain.genesis_block(gabe.serialized_public, 0)
-test_reg_block = chain.block(test_gen_block, gabe.pending_output_transactions, gabe.serialized_public, 0)
-test_reg_2_block = chain.block(test_reg_block, gabe.pending_output_transactions, gabe.serialized_public, 0)
-test_reg_3_block = chain.block(test_reg_2_block, gabe.pending_output_transactions, gabe.serialized_public, 0)
+#test_gen_block = chain.genesis_block(gabe.serialized_public, 0)
+#test_reg_block = chain.block(test_gen_block, gabe.pending_output_transactions, gabe.serialized_public, 0)
+#test_reg_2_block = chain.block(test_reg_block, gabe.pending_output_transactions, gabe.serialized_public, 0)
+#test_reg_3_block = chain.block(test_reg_2_block, gabe.pending_output_transactions, gabe.serialized_public, 0)
 
-zero = json.loads(block_to_json(test_gen_block))
-one = json.loads(block_to_json(test_reg_block))
-two = json.loads(block_to_json(test_reg_2_block))
-three = json.loads(block_to_json(test_reg_3_block))
+#zero = json.loads(block_to_json(test_gen_block))
+#one = json.loads(block_to_json(test_reg_block))
+#two = json.loads(block_to_json(test_reg_2_block))
+#three = json.loads(block_to_json(test_reg_3_block))
 
 
 #pprint.pprint(one)
 
-ver = block_verification.verify_block(two, three)
+#ver = block_verification.verify_block(two, three)
 #for i in one["transactions"]:
 	#block_verification.verify_block_transactions(i)
+#print(ver)
+
+mempool = gabe.pending_output_transactions
+#mempool = []
+
+def perpet_mine(prev_block):
+	block = chain.block(prev_block, mempool, gabe.serialized_public, 0)
+	ver = block_verification.verify_block(prev_block, block)
+	if ver == True:
+		blocks.insert_one(json.loads(block_to_json(block)))
+		print("block added !")
+		print(blocks.count())
+		return perpet_mine(json.loads(block_to_json(block)))
+	else:
+		print ("block addition failed")
+		return
+
+
+def init_mine():
+	if blocks.find_one({"_id": 0}) == None:
+		block = chain.genesis_block(gabe.serialized_public, 0)
+		blocks.insert_one(json.loads(block_to_json(block)))
+		print(blocks.count())
+
+	else:
+		print(blocks.count())
+		block_count = blocks.count()
+		last_block = blocks.find_one({"_id": block_count - 1})
+		perpet_mine(last_block)
+
+init_mine()
+
+
+
+"""
+last_block = blocks.find_one({"_id": 39})
+block = chain.block(last_block, gabe.pending_output_transactions, gabe.serialized_public, 0)
+
+ver = block_verification.verify_block(last_block, block)
 print(ver)
+#print(blocks.count())
+
+	else:
+		block = chain.block(prev_block, gabe.pending_output_transactions, gabe.serialized_public, 0)
+		blocks.insert_one(json.loads(block_to_json(block)))
+		print(blocks.count())
+"""
+#pprint.pprint(blocks.find_one({"_id": 75}))

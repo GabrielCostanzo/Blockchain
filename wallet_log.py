@@ -94,7 +94,7 @@ class loaded_wallet(wallet):
 				if (j["receiver_public_key"].encode('UTF-8') == self.serialized_public and [j["txid"], j["output_amount"]] not in self.unspent_input_transactions):
 					(self.unspent_input_transactions).append([j["txid"], j["output_amount"]])
 
-				if (j["sender_public_key"].encode('UTF-8') == self.serialized_public):
+				if (j["sender_public_key"].encode('UTF-8') == self.serialized_public and j["status"] != "coinbase"):
 					for n in j["input_transactions"]:
 						if n in self.unspent_input_transactions:
 							self.unspent_input_transactions.remove(n)
@@ -116,7 +116,10 @@ class loaded_wallet(wallet):
 	def create_transaction(self, receiver_public_key, input_amount, fees):
 		self.update_input_transactions()
 		new_transaction = transaction(self.serialized_public, receiver_public_key, input_amount, fees)
-		new_transaction.input_transactions = self.set_input_transactions(new_transaction.input_amount)
+		if self.set_input_transactions(new_transaction.input_amount) == None:
+			new_transaction.input_transactions = []
+		else:
+			new_transaction.input_transactions = self.set_input_transactions(new_transaction.input_amount)
 
 		pickled_transaction = pickle.dumps(new_transaction)
 

@@ -33,7 +33,7 @@ class transaction():
 		self.fees = fees
 		self.output_amount = input_amount - fees
 
-		self.input_transactions = None
+		self.input_transactions = []
 
 		self.status = "Requires Signature"
 

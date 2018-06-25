@@ -15,7 +15,7 @@ def update_utxo_pool_single(input_json_b):
 	for j in input_json_b["transactions"]:
 		if j["status"] != "coinbase":
 			for n in j["input_transactions"]:
-				utxo_pool.remove_one({"_id": n[0]})
+				utxo_pool.remove({"_id": n[0]})
 		try:
 			utxo_pool.insert_one({"_id": j["txid"], "value": j["output_amount"]})
 		except:

@@ -4,6 +4,7 @@ from chain import merkle_node
 from user import encrypt_key
 from user import sign 
 from user import master_key
+from json_serialize import block_to_json
 import json
 from user import transaction as t_obj
 from chain import coinbase_transaction
@@ -55,8 +56,10 @@ def generate_merkle_root(transaction_pool):
 	else:
 		return generate_merkle_root(temp_list)
 
-def verify_block(json_previous_block, json_block):
+def verify_block(json_previous_block, block_obj):
 	update_utxo_pool_full()
+	cb_transact = block_obj.coinbase_transaction
+	json_block = json.loads(block_to_json(block_obj))
 	previous_block_hash = json_previous_block["block_hash"].encode('UTF-8')
 
 	given_nonce = json_block["nonce"].encode('UTF-8')
@@ -71,12 +74,18 @@ def verify_block(json_previous_block, json_block):
 			transaction_list.append(i["transaction_data"])
 			spent_inputs = good_transaction[1]
 			for i in spent_inputs:
-				utxo_pool.remove({"_id": i["_id"]})
+				removed = utxo_pool.remove({"_id": i["_id"]})
+				if removed["n"] == 0:
+					print("invalid input!")
+					return False
 			spent_inputs = []
 		else:
 			return False
+	if len(transaction_list) == 1:
+		target_merkle_root = encrypt_key(cb_transact, master_key).encode('UTF-8')
+	else:
+		target_merkle_root = generate_merkle_root(transaction_list)
 
-	target_merkle_root = generate_merkle_root(transaction_list)
 	target_height = (json_previous_block["height"]) + 1
 	target_zeros  = '00000'
 	target_hash_base = previous_block_hash+target_merkle_root+given_nonce
