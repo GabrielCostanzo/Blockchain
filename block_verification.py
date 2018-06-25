@@ -11,6 +11,16 @@ from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.backends import default_backend
+from pool_manager import update_utxo_pool_single
+from pool_manager import  update_utxo_pool_full
+import pymongo
+
+client = pymongo.MongoClient()
+db = client.database
+
+#collection named posts:
+blocks = db.blocks
+utxo_pool = db.utxo_pool
 
 def generate_merkle_root(transaction_pool):
 	temp_list = []
@@ -45,18 +55,24 @@ def generate_merkle_root(transaction_pool):
 	else:
 		return generate_merkle_root(temp_list)
 
-
 def verify_block(json_previous_block, json_block):
+	update_utxo_pool_full()
 	previous_block_hash = json_previous_block["block_hash"].encode('UTF-8')
 
 	given_nonce = json_block["nonce"].encode('UTF-8')
 	given_transactions = json_block["transactions"]
 
+	spent_inputs = []
+
 	transaction_list = []
 	for i in given_transactions:
 		good_transaction = verify_block_transactions(i)
-		if good_transaction == True:
+		if good_transaction[0] == True:
 			transaction_list.append(i["transaction_data"])
+			spent_inputs = good_transaction[1]
+			for i in spent_inputs:
+				utxo_pool.remove({"_id": i["_id"]})
+			spent_inputs = []
 		else:
 			return False
 
@@ -92,6 +108,7 @@ def verify_block(json_previous_block, json_block):
 
 def verify_block_transactions(transaction):
 	#print(json.dumps(transaction, sort_keys=False, indent=4, separators=(',', ': ')))
+	used_transactions = []
 	transaction_obj = (pickle.loads(transaction["transaction_data"].encode('latin1')))
 
 	correct_obj = False
@@ -128,7 +145,14 @@ def verify_block_transactions(transaction):
 			correct_value = False
 
 		for i in transaction["input_transactions"]:
-			running_input_value += i[1]
+			mongo_input_transaction = utxo_pool.find_one({"_id": i[0]})
+
+			if mongo_input_transaction == None or mongo_input_transaction in used_transactions:
+				valid_input_value = False
+			else:
+				running_input_value += mongo_input_transaction["value"]
+				used_transactions.append(mongo_input_transaction)
+
 		if running_input_value < transaction["input_amount"]:
 			valid_input_value = False
 
@@ -162,9 +186,9 @@ def verify_block_transactions(transaction):
 	validity_list = [correct_obj, correct_sig, valid_value, correct_value, correct_match, valid_input_value]
 
 	if False in validity_list:
-		return False
+		return [False, None]
 	else:
-		return True
+		return [True, used_transactions]
 
 
 

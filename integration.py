@@ -237,7 +237,7 @@ three = json.loads(block_to_json(test_reg_3_block))
 
 #pprint.pprint(one)
 
-#ver = block_verification.verify_block(two, three)
-for i in one["transactions"]:
-	block_verification.verify_block_transactions(i)
-#print(ver)
+ver = block_verification.verify_block(two, three)
+#for i in one["transactions"]:
+	#block_verification.verify_block_transactions(i)
+print(ver)

@@ -49,7 +49,7 @@ with open("test_json_block.json", "w") as json_file:
 
 #posts.insert_one({})
 
-
+"""
 print("unspent:")
 count = 0
 for i in integration.gabe.unspent_input_transactions:
@@ -66,3 +66,4 @@ for i in integration.gabe.spent_input_transactions:
 x = inputs.find({"value": 50})
 for i in x:
 	print(i)
+"""
