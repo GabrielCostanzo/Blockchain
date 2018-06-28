@@ -255,8 +255,8 @@ gabe.create_transaction(carl.serialized_public, 16, 4)
 	#block_verification.verify_block_transactions(i)
 #print(ver)
 
-mempool = gabe.pending_output_transactions
-#mempool = []
+#mempool = gabe.pending_output_transactions
+mempool = []
 
 def perpet_mine(prev_block):
 	block = chain.block(prev_block, mempool, gabe.serialized_public, 0)
