@@ -57,7 +57,7 @@ def ip_request():
 	while end == False:
 		data = tcpClientA.recv(BUFFER_SIZE)
 		blob += data.decode('UTF-8')
-		if data[-3:] == b"end":
+		if data[-8:] == b"end\n\tend":
 			print("\nend of data stream")
 			end = True
 			break
@@ -99,7 +99,7 @@ def block_request():
 		data = tcpClientA.recv(BUFFER_SIZE)
 		blob += data
 
-		if data[-3:] == b"end":
+		if data[-8:] == b"end\n\tend":
 			print("\nend of data stream")
 			end = True
 			break
@@ -107,8 +107,8 @@ def block_request():
 	message_blob = blob.split(b"\n\t\n\t")
 	message_blob.remove(message_blob[-1])
 	#pprint.pprint(json.loads(message_blob))
-	for i in message_blob:
-		pprint.pprint(json.loads(i))
+	#for i in message_blob:
+	#	pprint.pprint(json.loads(i))
 	#MESSAGE = input("tcpClientA: Enter message to continue/ Enter exit:").encode('UTF-8')
 	tcpClientA.close()
 

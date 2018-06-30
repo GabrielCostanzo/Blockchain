@@ -57,9 +57,9 @@ class ClientThread(Thread):
                 self.conn.sendall(message_list[i] + b"\n\t\n\t")
             except IndexError:
                 print("index error")
-                self.conn.send(b"end")
+                self.conn.sendall(b"end\n\tend")
                 return
-        self.conn.send(b"end")
+        self.conn.send(b"end\n\tend")
         
         print("server delivered stored ips.\n")
 
@@ -69,14 +69,14 @@ class ClientThread(Thread):
         for i in range(start_height, block_count):
             current_block = blocks.find_one({"_id": i})
             if current_block == None:
-                self.conn.sendall(b"end")
+                self.conn.sendall(b"end\n\tend")
                 return
             sender_block = json.dumps(current_block).encode('UTF-8')
 
             print("size:", sys.getsizeof(sender_block))
             self.conn.send(sender_block + b"\n\t\n\t")
 
-        self.conn.send(b"end")
+        self.conn.sendall(b"end\n\tend")
  
     def run(self): 
         closed = False
@@ -85,7 +85,7 @@ class ClientThread(Thread):
         client_ip = b""
         while True : 
             try:
-                data = conn.recv(3389) 
+                data = self.conn.recv(3389) 
             except ConnectionResetError:
                 print("A connection was forcibly closed.")
                 self.conn.close()
