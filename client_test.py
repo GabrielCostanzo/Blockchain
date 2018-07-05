@@ -24,11 +24,11 @@ ip_list = []
 def clear():
 	os.system('cls' if os.name=='nt' else 'clear')
 
-host = socket.gethostname() 
-#host = '18.216.83.7'
+#host = socket.gethostname() 
+host = "18.222.145.60"
 client_ip = (socket.gethostbyname(socket.gethostname()))
 print("client_ip:", client_ip)
-port = 3389
+port = 3399
 BUFFER_SIZE = 1024
 MESSAGE = ""
 

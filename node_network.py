@@ -31,18 +31,18 @@ class ClientThread(Thread):
         self.conn = conn
         self.ip = ip 
         self.port = port 
-        print ("[+] New server socket thread started for " + ip + ":" + str(port))
+        #print ("[+] New server socket thread started for " + ip + ":" + str(port))
         connect = True
 
     def ips_deliver(self, count):
-        print("ips were requested from server.")
+        #print("ips were requested from server.")
         for i in range(count):
             try:
                 ipv4 = (ip_addresses.find_one({"_id": i})["ipv4"]).encode('UTF-8')
-                print(ipv4, count)
+                #print(ipv4, count)
                 self.conn.sendall(ipv4 + b"\n\t\n\t")
             except TypeError:
-                print("index error")
+                #print("index error")
                 self.conn.send(b"end\n\tend")
                 return
         self.conn.send(b"end\n\tend")
@@ -50,7 +50,7 @@ class ClientThread(Thread):
         print("server delivered stored ips.\n")
 
     def blocks_deliver(self, start_height):
-        print("blocks were requested from the server.")
+        #print("blocks were requested from the server.")
         block_count = blocks.count()
         for i in range(start_height, block_count):
             current_block = blocks.find_one({"_id": i})
@@ -59,7 +59,7 @@ class ClientThread(Thread):
                 return
             sender_block = json.dumps(current_block).encode('UTF-8')
 
-            print("size:", sys.getsizeof(sender_block))
+            #print("size:", sys.getsizeof(sender_block))
             self.conn.sendall(sender_block + b"\n\t\n\t")
 
         self.conn.sendall(b"end\n\tend")
@@ -76,13 +76,11 @@ class ClientThread(Thread):
                 print("A connection was forcibly closed.")
                 self.conn.close()
                 closed = True
-                server_thread.threads.remove(self)
                 return 0
 
             if not data: 
                 #os._exit(0)
                 self.conn.close()
-                server_thread.threads.remove(self)
                 return 0
 
             if closed == False:
@@ -111,7 +109,6 @@ class ClientThread(Thread):
                 except ConnectionResetError:
                     print("A connection was forcibly closed.")
                     self.conn.close()
-                    server_thread.threads.remove(self)
                     return 0
         conn.close()
 
@@ -121,10 +118,11 @@ class ClientThread(Thread):
 
 class OutThread(Thread): 
  
-    def __init__(self, host): 
+    def __init__(self, host, command): 
         Thread.__init__(self) 
 
         self.host = host
+        self.connection_status = False
         #self.host = socket.gethostname() 
         #self.host = '18.220.180.123'
         #self.client_ip = (socket.gethostbyname(socket.gethostname()))
@@ -132,6 +130,17 @@ class OutThread(Thread):
         self.port = 3389
         self.BUFFER_SIZE = 1024
         self.MESSAGE = ""
+        self.command = command
+        self.tcpClientA = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
+        self.timeout_secs = 7
+        self.tcpClientA.settimeout(self.timeout_secs)
+        try:
+            self.tcpClientA.connect((self.host, self.port))
+            print("Sucessfully connected to %s"%self.host)
+            self.connection_status = True
+        except:
+            print("failed to connect to %s."%self.host)
+            self.command = -1
 
     def clear(self):
         os.system('cls' if os.name=='nt' else 'clear')
@@ -142,29 +151,25 @@ class OutThread(Thread):
         eom_index = 0
         message_list = []
         while ip_num_selection == False:
-            self.clear()
-            ip_num = input("number of ips [1-100]: ")
+            #self.clear()
+            # number of ips to be received
+            ip_num = 10
             if int(ip_num) > 0 and int(ip_num) <= 100:
                 self.MESSAGE = b"i"+str(ip_num).encode('UTF-8')+b"f"+self.client_ip.encode('UTF-8')
                 ip_num_selection = True
-        tcpClientA = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
-        tcpClientA.settimeout(7)
-        try:
-            tcpClientA.connect((self.host, self.port))
-        except socket.timeout:
-            return 0
+
         data = b""
         try:
-            tcpClientA.send(self.MESSAGE.encode('UTF-8'))     
+            self.tcpClientA.send(self.MESSAGE.encode('UTF-8'))     
         except:
-            tcpClientA.send(self.MESSAGE)
+            self.tcpClientA.send(self.MESSAGE)
 
         end = False
         blob = ""
-        self.clear()
+        #self.clear()
         print("received:\n")
         while end == False:
-            data = tcpClientA.recv(self.BUFFER_SIZE)
+            data = self.tcpClientA.recv(self.BUFFER_SIZE)
             blob += data.decode('UTF-8')
             if data[-8:] == b"end\n\tend":
                 end = True
@@ -185,35 +190,30 @@ class OutThread(Thread):
                 ip_addresses.insert_one({"_id": ip_addresses.count(), "ipv4": i})
 
 
-        tcpClientA.close()
+        self.tcpClientA.close()
 
 
     def block_request(self):
         block_selection = False
         while block_selection == False:
-            self.clear()
+            #self.clear()
             block_num = input("Enter the highest block on record\n[0] for full blockchain: ")
             self.MESSAGE = b"b"+str(block_num).encode('UTF-8')+b"f"+self.client_ip.encode('UTF-8')
             if int(block_num) >= 0:
                 block_selection = True
-        tcpClientA = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
-        tcpClientA.settimeout(7)
-        try:
-            tcpClientA.connect((self.host, self.port))
-        except socket.timeout:
-            return 0
+
         data = b""
         try:
-            tcpClientA.sendall(self.MESSAGE.encode('UTF-8'))     
+            self.tcpClientA.sendall(self.MESSAGE.encode('UTF-8'))     
         except:
-            tcpClientA.send(self.MESSAGE)
+            self.tcpClientA.send(self.MESSAGE)
 
         end = False
         blob = b""
-        self.clear()
+        #self.clear()
         print("received:\n")
         while end == False:
-            data = tcpClientA.recv(self.BUFFER_SIZE)
+            data = self.tcpClientA.recv(self.BUFFER_SIZE)
             blob += data
 
             if data[-8:] == b"end\n\tend":
@@ -227,41 +227,22 @@ class OutThread(Thread):
         for i in message_blob:
             pprint.pprint(json.loads(i))
         #MESSAGE = input("tcpClientA: Enter message to continue/ Enter exit:").encode('UTF-8')
-        tcpClientA.close()
+        self.tcpClientA.close()
 
     def run(self):
         while True:
-            selection = False
-            while selection == False:
-                self.clear()
-                print("\n\n")
-                print("request a list of ip connections: [0]")
-                print("request an updated blockchain: [1]")
-                print("request an updated mempool [2]")
-                print("close thread [-1]")
-                prefix = input("please enter a command: ")
-                if prefix == "0":
-                    selection = True
-                elif prefix == "1":
-                    selection = True
-                elif prefix == "-1":
-                    selection = True
 
-
-            if prefix == "0":
-                task = self.ip_request()
-                if task == 0:
-                    return 0 
-            if prefix == "1":
-                task = self.block_request()
-                if task == 0:
-                    return 0
-            if prefix == "-1":
+            if self.command == 0:
+                self.ip_request()
+                return 0 
+            if self.command == 1:
+                self.block_request()
                 return 0
 
-            time.sleep(10)
+            if self.command == -1:
+                return 0
+        
 
-connect = False
 class Master_Server(Thread): 
     def __init__(self): 
         Thread.__init__(self) 
@@ -269,6 +250,7 @@ class Master_Server(Thread):
         self.TCP_IP = '0.0.0.0' 
         self.TCP_PORT = 3389
         self.BUFFER_SIZE = 1024  # Usually 1024, but we need quick response 
+        self.connect = False
 
         self.tcpServer = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
         self.tcpServer.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) 
@@ -277,19 +259,20 @@ class Master_Server(Thread):
 
     def run(self):
         while True:
-            while connect == False: 
+            while self.connect == False: 
                 self.tcpServer.listen(4) 
-                print ("Multithreaded Python server : Waiting for connections from TCP clients...")
+                #print ("Multithreaded Python server : Waiting for connections from TCP clients...")
                 (conn, (ip,port)) = self.tcpServer.accept() 
                 newthread = ClientThread(conn, ip, port) 
                 newthread.start() 
                 self.threads.append(newthread) 
-                print(self.threads)
+                #print(self.threads)
              
             for t in self.threads: 
                 t.join() 
 
 
+"""
 master_threads = []
 local_host = socket.gethostname()
 
@@ -303,3 +286,4 @@ master_threads.append(out_client)
 
 for t in master_threads:
     t.join()
+"""
