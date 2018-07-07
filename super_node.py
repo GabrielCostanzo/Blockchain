@@ -4,6 +4,9 @@ import ipgetter
 import os
 import time
 import pymongo
+from wallet_log import loaded_wallet
+from wallet_log import user_login
+from node_network import block_load_switch
 """
 master_threads = []
 local_host = socket.gethostname()
@@ -89,24 +92,38 @@ class node():
 
 
 class super_node(node):
-	def __init__(self):
+	def __init__(self, loaded_wallet):
 		node.__init__(self)
 		self.server_thread = node_network.Master_Server()
+		self.loaded_wallet = loaded_wallet
 
 		def start_server(self):
 			self.server_thread.start()
 			self.thread_master.append(self.server_thread)
 			self.network_connect()
-			os._exit(0)
-
-
+			self.get_block_count()
+			#time.sleep(60)
+			#os._exit(0)
 		start_server(self)
 
-	#def get_block_count:
+
+	def get_block_count(self):
+		print("get blocks")
+		for i in self.active_ips:
+			try:
+				out_client = node_network.OutThread(i, 1)
+				out_client.start()
+			except:
+				print("error requesting blocks")
+
+			while node_network.block_load_switch == False:
+				time.sleep(1)
+			return 
 
 
 
-snode = super_node()
+
+snode = super_node(loaded_wallet(user_login()))
 #snode.start_server()
 #snode.network_connect()
 

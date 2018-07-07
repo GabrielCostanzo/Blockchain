@@ -256,16 +256,20 @@ gabe.create_transaction(carl.serialized_public, 16, 4)
 #print(ver)
 
 #mempool = gabe.pending_output_transactions
+#blocks.remove({})
 mempool = []
 
 def perpet_mine(prev_block):
-	block = chain.block(prev_block, mempool, gabe.serialized_public, 0)
+	block = json.loads(block_to_json(chain.block(prev_block, mempool, gabe.serialized_public, 0)))
+
+	pprint.pprint(block)
+
 	ver = block_verification.verify_block(prev_block, block)
 	if ver == True:
-		blocks.insert_one(json.loads(block_to_json(block)))
+		blocks.insert_one(block)
 		print("block added !")
 		print(blocks.count())
-		return perpet_mine(json.loads(block_to_json(block)))
+		return perpet_mine(block)
 	else:
 		print ("block addition failed")
 		return
@@ -273,9 +277,10 @@ def perpet_mine(prev_block):
 
 def init_mine():
 	if blocks.find_one({"_id": 0}) == None:
-		block = chain.genesis_block(gabe.serialized_public, 0)
-		blocks.insert_one(json.loads(block_to_json(block)))
+		block = json.loads(block_to_json(chain.genesis_block(gabe.serialized_public, 0)))
+		blocks.insert_one(block)
 		print(blocks.count())
+		perpet_mine(block)
 
 	else:
 		print(blocks.count())

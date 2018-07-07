@@ -43,14 +43,13 @@ def genesis_to_json(block_obj):
 """
 
 def block_to_json(block_obj):
-	coinbase = pickle.loads(block_obj.coinbase_transaction)
-	coinbase_json = transaction_to_json(coinbase)
+	"""
 	json_transactions = []
 
 	for i in block_obj.transactions:
 		t_obj = pickle.loads(i)
 		json_transactions.append(json.loads(transaction_to_json(t_obj)))
-
+	"""
 	"""
 	print(json.dumps({"block_hash": block_obj.block_hash.decode('UTF-8'), "height": block_obj.height,
 	"coinbase_transaction": json.loads(coinbase_json), 
@@ -61,10 +60,10 @@ def block_to_json(block_obj):
 	"""
 
 	json_obj = json.dumps({"_id": block_obj.height, "block_hash": block_obj.block_hash.decode('UTF-8'), "height": block_obj.height,
-	"coinbase_transaction": json.loads(coinbase_json), 
+	"coinbase_transaction": block_obj.coinbase_transaction, 
 	"transaction_fees": block_obj.transaction_fees, "block_reward": block_obj.block_reward, "total_output": block_obj.total_output,
 	"previous_block_hash": block_obj.previous_block_hash.decode('UTF-8'), "merkle_root": block_obj.merkle_root.decode('UTF-8'),
-	"nonce": block_obj.nonce.decode('UTF-8'), "timestamp": str(block_obj.timestamp), "transactions": json_transactions, "miner_public_key": block_obj.miner_public_key.decode('UTF-8')},
+	"nonce": block_obj.nonce.decode('UTF-8'), "timestamp": str(block_obj.timestamp), "transactions": block_obj.transactions, "miner_public_key": block_obj.miner_public_key.decode('UTF-8')},
 	sort_keys=False, indent=4, separators=(',', ': '))
 
 	return json_obj

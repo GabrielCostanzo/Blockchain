@@ -10,6 +10,7 @@ import pymongo
 from tkinter import Tk
 from tkinter.filedialog import askopenfilename
 from json_serialize import wallet_to_json
+from json_serialize import transaction_to_json
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 
@@ -25,6 +26,7 @@ utxo_pool = db.utxo_pool
 def user_login():
 	valid_selection = False
 	pass_conf = False
+	valid_file = False
 	while valid_selection == False:
 		print("\n\n")
 		print("[1] Login With file")
@@ -35,10 +37,21 @@ def user_login():
 		if selection == 1:
 			print("\nPlease select file:")
 			time.sleep(0.5)
-			Tk().withdraw()
-			selected_file = askopenfilename() 
-			with open("%s"%selected_file, "r") as json_selection:
-				pulled_file = json.loads(json_selection.read())
+			try:
+				Tk().withdraw()
+				selected_file = askopenfilename() 
+				with open("%s"%selected_file, "r") as json_selection:
+					pulled_file = json.loads(json_selection.read())
+			except:
+				while valid_file == False:
+					try:
+						print("please enter a wallet file name:")
+						selected_file = input(">")
+						with open("%s.json"%selected_file, "r") as json_selection:
+							pulled_file = json.loads(json_selection.read())
+						valid_file = True
+					except:
+						print("invalid file selection.")
 
 			return pulled_file
 			valid_selection = True
@@ -127,7 +140,8 @@ class loaded_wallet(wallet):
 		new_transaction.update_data(pickled_transaction)
 		new_transaction.update_txid(encrypt_key(pickled_transaction, master_key))
 
-		updated_pickled_transaction = pickle.dumps(new_transaction)
-		self.pending_output_transactions.append(updated_pickled_transaction)
+		final_transaction = json.loads(transaction_to_json(new_transaction))
 
-		return new_transaction
+		self.pending_output_transactions.append(final_transaction)
+
+		return final_transaction

@@ -25,4 +25,5 @@ def update_utxo_pool_single(input_json_b):
 def update_utxo_pool_full():
 	for i in range(0, blocks.count()):
 		current = blocks.find_one({"_id": i})
-		update_utxo_pool_single(current)
+		if current != None:	
+			update_utxo_pool_single(current)

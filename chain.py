@@ -6,6 +6,8 @@ from user import sign
 from user import master_key
 import random
 import pickle
+from json_serialize import transaction_to_json
+import json
 
 class coinbase_transaction(transaction):
 	def __init__(self, sender_public_key, receiver_public_key, input_amount, fees, block_height):
@@ -35,14 +37,14 @@ class genesis_block():
 		self.block_hash = None
 		self.height = 0
 
-		self.coinbase_transaction = pickle.dumps(coinbase_transaction(miner_public_key, miner_public_key, 0, 0, self.height))
-		self.transaction_fees = pickle.loads(self.coinbase_transaction).fees
-		self.block_reward = pickle.loads(self.coinbase_transaction).output_amount
+		self.coinbase_transaction = json.loads(transaction_to_json(coinbase_transaction(miner_public_key, miner_public_key, 0, 0, self.height)))
+		self.transaction_fees = self.coinbase_transaction["fees"]
+		self.block_reward = self.coinbase_transaction["output_amount"]
 		self.total_output = self.block_reward
 
 
 		self.previous_block_hash = b'0'*32
-		self.merkle_root = (encrypt_key(self.coinbase_transaction, master_key)).encode('UTF-8')
+		self.merkle_root = (encrypt_key(json.dumps(self.coinbase_transaction).encode('UTF-8'), master_key)).encode('UTF-8')
 		self.nonce = None
 
 		self.timestamp = datetime.datetime.now() 
@@ -82,11 +84,11 @@ class block():
 		self.block_hash = None
 		self.height = json_previous_block["height"] + 1
 
-		self.coinbase_transaction = pickle.dumps(coinbase_transaction(miner_public_key, miner_public_key, 0, 0, self.height))
-		self.block_reward = pickle.loads(self.coinbase_transaction).output_amount
+		self.coinbase_transaction = json.loads(transaction_to_json(coinbase_transaction(miner_public_key, miner_public_key, 0, 0, self.height)))
+		self.block_reward = self.coinbase_transaction["output_amount"]
 
 		self.total_output = self.block_reward
-		self.transaction_fees = pickle.loads(self.coinbase_transaction).fees
+		self.transaction_fees = self.coinbase_transaction["fees"]
 
 		self.merkle_root = None
 		self.previous_block_hash = json_previous_block["block_hash"].encode('UTF-8')
@@ -121,7 +123,7 @@ class block():
 			c2 = None
 			#print("concat layer:", layer)
 			if len(transaction_pool) == 1:
-				self.merkle_root = encrypt_key(self.coinbase_transaction, master_key).encode('UTF-8')
+				self.merkle_root = encrypt_key(json.dumps(self.coinbase_transaction).encode('UTF-8'), master_key).encode('UTF-8')
 			else:
 				for i in range(0, len(transaction_pool) - 1, 2):
 					try:
@@ -147,13 +149,12 @@ class block():
 
 		def calculate_values(self):
 			for i in raw_transactions:
-				loaded_transaction = pickle.loads(i)
-				self.total_output += loaded_transaction.output_amount
-				self.transaction_fees += loaded_transaction.fees
+				self.total_output += i["output_amount"]
+				self.transaction_fees += i["fees"]
 
 		data_list = []
 		for i in self.transactions:
-			data_list.append(pickle.loads(i).transaction_data)
+			data_list.append(i["transaction_data"].encode('UTF-8'))
 		generate_nodes(self, data_list)
 		proof_of_work(self, start_nonce, '00000')
 		calculate_values(self)

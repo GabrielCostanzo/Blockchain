@@ -17,12 +17,16 @@ import sys
 
 import ipgetter
 
+import block_verification
+
 client = pymongo.MongoClient()
 db = client.database
 
 #collection named posts:
 blocks = db.blocks
 ip_addresses = db.ip_addresses
+
+block_load_switch = False
 
 class ClientThread(Thread): 
  
@@ -192,12 +196,15 @@ class OutThread(Thread):
 
         self.tcpClientA.close()
 
-
     def block_request(self):
+        global block_load_switch
+        block_load_switch = False
+        print("blocks requested")
         block_selection = False
         while block_selection == False:
             #self.clear()
-            block_num = input("Enter the highest block on record\n[0] for full blockchain: ")
+            block_num = int(blocks.count())
+            #block_num = input("Enter the highest block on record\n[0] for full blockchain: ")
             self.MESSAGE = b"b"+str(block_num).encode('UTF-8')+b"f"+self.client_ip.encode('UTF-8')
             if int(block_num) >= 0:
                 block_selection = True
@@ -224,10 +231,29 @@ class OutThread(Thread):
         message_blob = blob.split(b"\n\t\n\t")
         message_blob.remove(message_blob[-1])
         #pprint.pprint(json.loads(message_blob))
-        for i in message_blob:
-            pprint.pprint(json.loads(i))
+        for i in range(0, len(message_blob)-1):
+            search_block = blocks.find_one({"_id":json.loads(message_blob[i])["height"]})
+
+            if search_block == None:
+                front_block = json.loads(message_blob[i].decode('UTF-8'))
+                follow_block = json.loads(message_blob[i+1].decode('UTF-8'))
+                validity_check = block_verification.verify_block(front_block, follow_block)
+                if validity_check == True:
+                    blocks.insert_one(front_block)
+                    print("added block: %s"%front_block["height"])
+                    if i == len(message_blob[-1]):
+                        blocks.insert_one(follow_block)
+                        print("added final block: %s"%follow_block["height"])
+            else:
+                follow_block = json.loads(message_blob[i+1].decode('UTF-8'))
+                validity_check = block_verification.verify_block(search_block, follow_block)
+                blocks.insert_one(follow_block)
+                print("appended: %s"% follow_block["height"])
+
+        block_load_switch = True
         #MESSAGE = input("tcpClientA: Enter message to continue/ Enter exit:").encode('UTF-8')
         self.tcpClientA.close()
+
 
     def run(self):
         while True:
@@ -238,7 +264,6 @@ class OutThread(Thread):
             if self.command == 1:
                 self.block_request()
                 return 0
-
             if self.command == -1:
                 return 0
         

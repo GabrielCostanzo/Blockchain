@@ -56,10 +56,9 @@ def generate_merkle_root(transaction_pool):
 	else:
 		return generate_merkle_root(temp_list)
 
-def verify_block(json_previous_block, block_obj):
+def verify_block(json_previous_block, json_block):
 	update_utxo_pool_full()
-	cb_transact = block_obj.coinbase_transaction
-	json_block = json.loads(block_to_json(block_obj))
+	cb_transact = json_block["coinbase_transaction"]
 	previous_block_hash = json_previous_block["block_hash"].encode('UTF-8')
 
 	given_nonce = json_block["nonce"].encode('UTF-8')
@@ -82,7 +81,7 @@ def verify_block(json_previous_block, block_obj):
 		else:
 			return False
 	if len(transaction_list) == 1:
-		target_merkle_root = encrypt_key(cb_transact, master_key).encode('UTF-8')
+		target_merkle_root = encrypt_key(json.dumps(cb_transact).encode('UTF-8'), master_key).encode('UTF-8')
 	else:
 		target_merkle_root = generate_merkle_root(transaction_list)
 
