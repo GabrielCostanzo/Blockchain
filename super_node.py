@@ -7,6 +7,9 @@ import pymongo
 from wallet_log import loaded_wallet
 from wallet_log import user_login
 from node_network import block_load_switch
+from user import wallet
+import pickle
+import json
 """
 master_threads = []
 local_host = socket.gethostname()
@@ -29,6 +32,8 @@ db = client.database
 #collection named posts:
 blocks = db.blocks
 ip_addresses = db.ip_addresses
+act_ips = db.act_ips
+mem_pool = db.mem_pool
 
 #local: "73.32.165.76"
 #aws: "18.222.145.60"
@@ -37,13 +42,15 @@ print((socket.gethostbyname(socket.gethostname())), ipgetter.myip())
 
 class node():
 	def __init__(self):
-		self.super_ips = ["testtest", "18.222.145.60", "testtesttest"]
+		self.super_ips = ["18.222.145.60"]
 		self.active_ips = []
 		self.local_host = (socket.gethostbyname(socket.gethostname()))
 		self.network_ip = ipgetter.myip()
 		self.thread_master = []
 
 	def network_connect(self):
+		act_ips.remove({})
+		mem_pool.remove({})
 		active_found = False
 		self.test_connections()
 		while active_found == False:
@@ -75,12 +82,19 @@ class node():
 				print("\n\n%s"%self.active_ips)
 				#os._exit(0)
 				active_found = True
+
+
+		print("IP LEN:", len(self.active_ips))
+		for i in self.active_ips:
+			act_ips.insert_one({"_id": i})
 		return 
 
 	def test_connections(self):
 		for i in range(ip_addresses.count()):
 			current_host = ip_addresses.find_one({"_id": i})["ipv4"]
-			if current_host != self.network_ip and current_host != self.local_host:
+			dot_count = current_host.count(".")
+			local_find = current_host[:7]
+			if current_host != self.network_ip and current_host != self.local_host and dot_count == 3 and local_find != "10.0.0.":
 				try:
 					out_client = node_network.OutThread(current_host, -1)
 					out_client.start()
@@ -89,7 +103,6 @@ class node():
 					self.thread_master.append(out_client)
 				except:
 					print("error connecting to %s"%current_host)
-
 
 class super_node(node):
 	def __init__(self, loaded_wallet):
@@ -102,8 +115,11 @@ class super_node(node):
 			self.thread_master.append(self.server_thread)
 			self.network_connect()
 			self.get_block_count()
-			#time.sleep(60)
-			#os._exit(0)
+			input("press enter to send transaction")
+			self.send_transaction()
+			input("press enter to exit")
+			os._exit(0)
+
 		start_server(self)
 
 
@@ -120,9 +136,14 @@ class super_node(node):
 				time.sleep(1)
 			return 
 
+	def send_transaction(self):
+		to_send = json.dumps(self.loaded_wallet.create_transaction(allen.serialized_public, 113, 12)).encode('UTF-8')
+		for i in self.active_ips:
+			sender_thread = node_network.SendThread(i, "transaction", to_send)
+			sender_thread.start()
 
-
-
+tim = wallet()
+allen = wallet()
 snode = super_node(loaded_wallet(user_login()))
 #snode.start_server()
 #snode.network_connect()

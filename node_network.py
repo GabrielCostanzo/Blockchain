@@ -18,6 +18,9 @@ import sys
 import ipgetter
 
 import block_verification
+from user import encrypt_key
+from user import sign 
+from user import master_key
 
 client = pymongo.MongoClient()
 db = client.database
@@ -25,6 +28,8 @@ db = client.database
 #collection named posts:
 blocks = db.blocks
 ip_addresses = db.ip_addresses
+mem_pool = db.mem_pool
+act_ips = db.act_ips
 
 block_load_switch = False
 
@@ -67,7 +72,30 @@ class ClientThread(Thread):
             self.conn.sendall(sender_block + b"\n\t\n\t")
 
         self.conn.sendall(b"end\n\tend")
- 
+
+    def distribute_transaction(self, out_data):
+        out_points = act_ips.find({})
+        print("out_points:", act_ips.count())
+        for i in out_points:
+            relay_thread = SendThread(i["_id"], "transaction", out_data)
+            relay_thread.start()
+            print("transaction relay initiated for %s"% i["_id"])
+
+
+    def receive_transaction(self, transaction):
+        try:
+            mem_pool.insert_one({"_id": encrypt_key(transaction, master_key), "t_data": transaction})
+            print("received transaction added to mem_pool")
+            print(mem_pool.count())
+            time.sleep(2)
+            self.conn.sendall(b"your transaction has been considered by a node.")
+            self.conn.sendall(b"end\n\tend")
+            self.distribute_transaction(transaction) 
+        except:
+            print("error adding received transaction to mempool: (possible duplicate)")
+            self.conn.sendall(b"your transaction has been considered by a node.")
+            self.conn.sendall(b"end\n\tend")
+
     def run(self): 
         closed = False
         f_index = 0
@@ -89,21 +117,27 @@ class ClientThread(Thread):
 
             if closed == False:
                 try:
-                    if str(chr(data[0])) == "i" or str(chr(data[0])) == "b":
+                    if str(chr(data[0])) == "i" or str(chr(data[0])) == "b" or str(chr(data[0])) == "t":
                         for i in range(len(data)):
                             if str(chr(data[i])) == "f":
                                 f_index = i
-                        num = int(data[1:f_index])
-                        client_ip = data[f_index+1:].decode('UTF-8')
+                        payload = data[1:f_index]
+                        try:
+                            client_ip = data[f_index+1:].decode('UTF-8')
 
-                        search_ip = ip_addresses.find_one({"ipv4": client_ip})
-                        if search_ip == None:
-                            ip_addresses.insert_one({"_id": ip_addresses.count(), "ipv4": client_ip})
-
+                            search_ip = ip_addresses.find_one({"ipv4": client_ip})
+                            dot_count = search_ip.count(".")
+                            local_find = search_ip[:7]
+                            if search_ip == None and dot_count == 3 and local_find != "10.0.0.":
+                                ip_addresses.insert_one({"_id": ip_addresses.count(), "ipv4": client_ip})
+                        except:
+                            pass
                         if str(chr(data[0])) == "i":
-                            self.ips_deliver(num)
+                            self.ips_deliver(int(payload))
                         elif str(chr(data[0])) == "b":
-                            self.blocks_deliver(num)
+                            self.blocks_deliver(int(payload))
+                        if str(chr(data[0])) == "t":
+                            self.receive_transaction(payload)
 
 
                     else:
@@ -114,7 +148,7 @@ class ClientThread(Thread):
                     print("A connection was forcibly closed.")
                     self.conn.close()
                     return 0
-        conn.close()
+        self.conn.close()
 
 
 # Python TCP Client A
@@ -254,7 +288,6 @@ class OutThread(Thread):
         #MESSAGE = input("tcpClientA: Enter message to continue/ Enter exit:").encode('UTF-8')
         self.tcpClientA.close()
 
-
     def run(self):
         while True:
 
@@ -266,7 +299,60 @@ class OutThread(Thread):
                 return 0
             if self.command == -1:
                 return 0
-        
+
+class SendThread(Thread): 
+ 
+    def __init__(self, host, command, send_load): 
+        Thread.__init__(self) 
+
+        self.host = host
+        self.connection_status = False
+        #self.host = socket.gethostname() 
+        #self.host = '18.220.180.123'
+        #self.client_ip = (socket.gethostbyname(socket.gethostname()))
+        self.client_ip = ipgetter.myip()
+        self.port = 3389
+        self.BUFFER_SIZE = 1024
+        self.MESSAGE = ""
+        self.command = command
+        self.tcpClientA = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
+        self.timeout_secs = 7
+        self.tcpClientA.settimeout(self.timeout_secs)
+        self.send_load = send_load
+        try:
+            self.tcpClientA.connect((self.host, self.port))
+            print("Send Thread connected to %s"%self.host)
+            self.connection_status = True
+        except:
+            print("Send Thread failed to connect to %s."%self.host)
+            self.command = -1
+
+    def send_transaction(self):
+        data = b""
+        end = False
+        self.MESSAGE = b"t"+self.send_load+b"f"+self.client_ip.encode('UTF-8')        
+        try:
+            self.tcpClientA.sendall(self.MESSAGE.encode('UTF-8'))     
+        except:
+            self.tcpClientA.send(self.MESSAGE)
+
+        #self.clear()
+        print("received:\n")
+        while end == False:
+            data += self.tcpClientA.recv(self.BUFFER_SIZE)
+            if data[-8:] == b"end\n\tend":
+                #print("\nend of data stream")
+                print(data[:-8])
+                end = True
+                break
+
+        self.tcpClientA.close()
+
+    def run(self):
+        if self.command == "transaction":
+            self.send_transaction()
+            return 0 
+
 
 class Master_Server(Thread): 
     def __init__(self): 
