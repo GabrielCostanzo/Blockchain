@@ -101,9 +101,12 @@ class ClientThread(Thread):
         f_index = 0
         num = 0
         client_ip = b""
+        data = b""
         while True : 
             try:
-                data = self.conn.recv(3389) 
+                while data[-8:] != b"end\n\tend":
+                    data += self.conn.recv(3389)
+                data = data[:-8]
             except ConnectionResetError:
                 print("A connection was forcibly closed.")
                 self.conn.close()
@@ -193,7 +196,7 @@ class OutThread(Thread):
             # number of ips to be received
             ip_num = 10
             if int(ip_num) > 0 and int(ip_num) <= 100:
-                self.MESSAGE = b"i"+str(ip_num).encode('UTF-8')+b"f"+self.client_ip.encode('UTF-8')
+                self.MESSAGE = b"i"+str(ip_num).encode('UTF-8')+b"f"+self.client_ip.encode('UTF-8') + b"end\n\tend"
                 ip_num_selection = True
 
         data = b""
@@ -239,7 +242,7 @@ class OutThread(Thread):
             #self.clear()
             block_num = int(blocks.count())
             #block_num = input("Enter the highest block on record\n[0] for full blockchain: ")
-            self.MESSAGE = b"b"+str(block_num).encode('UTF-8')+b"f"+self.client_ip.encode('UTF-8')
+            self.MESSAGE = b"b"+str(block_num).encode('UTF-8')+b"f"+self.client_ip.encode('UTF-8') + b"end\n\tend"
             if int(block_num) >= 0:
                 block_selection = True
 
@@ -330,7 +333,7 @@ class SendThread(Thread):
     def send_transaction(self):
         data = b""
         end = False
-        self.MESSAGE = b"t"+self.send_load+b"f"+self.client_ip.encode('UTF-8')        
+        self.MESSAGE = b"t"+self.send_load+b"f"+self.client_ip.encode('UTF-8') + b"end\n\tend"      
         try:
             self.tcpClientA.sendall(self.MESSAGE.encode('UTF-8'))     
         except:
