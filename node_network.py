@@ -18,6 +18,8 @@ import sys
 import ipgetter
 
 import block_verification
+import chain 
+from json_serialize import block_to_json
 from user import encrypt_key
 from user import sign 
 from user import master_key
@@ -32,6 +34,7 @@ mem_pool = db.mem_pool
 act_ips = db.act_ips
 
 block_load_switch = False
+valid_rec_block = False
 
 class ClientThread(Thread): 
  
@@ -67,9 +70,10 @@ class ClientThread(Thread):
                 self.conn.sendall(b"end\n\tend")
                 return
             sender_block = json.dumps(current_block).encode('UTF-8')
-
             #print("size:", sys.getsizeof(sender_block))
             self.conn.sendall(sender_block + b"\n\t\n\t")
+
+            print("sent block: %s"% current_block["_id"])
 
         self.conn.sendall(b"end\n\tend")
 
@@ -81,6 +85,13 @@ class ClientThread(Thread):
             relay_thread.start()
             print("transaction relay initiated for %s"% i["_id"])
 
+    def distribute_block(self, out_data):
+        out_points = act_ips.find({})
+        print("out_points:", act_ips.count())
+        for i in out_points:
+            relay_thread = SendThread(i["_id"], "block", out_data)
+            relay_thread.start()
+            print("block relay initiated.")
 
     def receive_transaction(self, transaction):
         try:
@@ -95,6 +106,26 @@ class ClientThread(Thread):
             print("error adding received transaction to mempool: (possible duplicate)")
             self.conn.sendall(b"your transaction has been considered by a node.")
             self.conn.sendall(b"end\n\tend")
+
+    def receive_block(self, in_block):
+        block_count = blocks.count()
+        last_block = blocks.find_one({"_id": block_count - 1})
+        block = json.loads(in_block.decode('UTF-8'))
+        validity_check = block_verification.verify_block(last_block, block)
+        if validity_check == True:
+            try:
+                blocks.insert_one(block)
+                self.conn.sendall(b"your block has been accepted by a node.")
+                self.conn.sendall(b"end\n\tend")
+                self.distribute_block(in_block)
+            except:
+                print("and exception occured in receive_block()")
+                self.conn.sendall(b"your block has been rejected by a node.")
+                self.conn.sendall(b"end\n\tend")  
+        else:
+            self.conn.sendall(b"your block has been rejected by a node.")
+            self.conn.sendall(b"end\n\tend")  
+
 
     def run(self): 
         closed = False
@@ -120,7 +151,7 @@ class ClientThread(Thread):
 
             if closed == False:
                 try:
-                    if str(chr(data[0])) == "i" or str(chr(data[0])) == "b" or str(chr(data[0])) == "t":
+                    if str(chr(data[0])) == "i" or str(chr(data[0])) == "b" or str(chr(data[0])) == "t" or str(chr(data[0])) == "s":
                         for i in range(len(data)):
                             if str(chr(data[i])) == "f":
                                 f_index = i
@@ -139,8 +170,10 @@ class ClientThread(Thread):
                             self.ips_deliver(int(payload))
                         elif str(chr(data[0])) == "b":
                             self.blocks_deliver(int(payload))
-                        if str(chr(data[0])) == "t":
+                        elif str(chr(data[0])) == "t":
                             self.receive_transaction(payload)
+                        elif str(chr(data[0])) == "s":
+                            self.receive_block(payload)
 
 
                     else:
@@ -270,7 +303,11 @@ class OutThread(Thread):
         #pprint.pprint(json.loads(message_blob))
         for i in range(0, len(message_blob)-1):
             search_block = blocks.find_one({"_id":json.loads(message_blob[i])["height"]})
-
+            if json.loads(message_blob[i])["height"] == 0:
+                front_block = json.loads(message_blob[i].decode('UTF-8'))
+                validity_check = True
+                blocks.insert_one(front_block)
+                continue
             if search_block == None:
                 front_block = json.loads(message_blob[i].decode('UTF-8'))
                 follow_block = json.loads(message_blob[i+1].decode('UTF-8'))
@@ -278,14 +315,23 @@ class OutThread(Thread):
                 if validity_check == True:
                     blocks.insert_one(front_block)
                     print("added block: %s"%front_block["height"])
-                    if i == len(message_blob[-1]):
-                        blocks.insert_one(follow_block)
-                        print("added final block: %s"%follow_block["height"])
+
+        if len(message_blob) > 0:
+            if json.loads(message_blob[-1])["height"] == 0:
+                front_block = json.loads(message_blob[-1].decode('UTF-8'))
+                validity_check = True
+                blocks.insert_one(front_block)
+
             else:
-                follow_block = json.loads(message_blob[i+1].decode('UTF-8'))
-                validity_check = block_verification.verify_block(search_block, follow_block)
-                blocks.insert_one(follow_block)
-                print("appended: %s"% follow_block["height"])
+                block_count = blocks.count()
+                last_block = blocks.find_one({"_id": block_count - 1})
+                final_block = json.loads(message_blob[-1].decode('UTF-8'))
+                validity_check = block_verification.verify_block(last_block, final_block)
+
+                if validity_check == True:
+                    blocks.insert_one(final_block)
+                    print("added final block: %s"%final_block["height"])  
+        
 
         block_load_switch = True
         #MESSAGE = input("tcpClientA: Enter message to continue/ Enter exit:").encode('UTF-8')
@@ -319,7 +365,7 @@ class SendThread(Thread):
         self.MESSAGE = ""
         self.command = command
         self.tcpClientA = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
-        self.timeout_secs = 7
+        self.timeout_secs = 180
         self.tcpClientA.settimeout(self.timeout_secs)
         self.send_load = send_load
         try:
@@ -333,7 +379,7 @@ class SendThread(Thread):
     def send_transaction(self):
         data = b""
         end = False
-        self.MESSAGE = b"t"+self.send_load+b"f"+self.client_ip.encode('UTF-8') + b"end\n\tend"      
+        self.MESSAGE = "t".encode('UTF-8')+self.send_load+b"f"+self.client_ip.encode('UTF-8') + b"end\n\tend"      
         try:
             self.tcpClientA.sendall(self.MESSAGE.encode('UTF-8'))     
         except:
@@ -351,9 +397,36 @@ class SendThread(Thread):
 
         self.tcpClientA.close()
 
+    def send_block(self):
+        global valid_rec_block
+        data = b""
+        end = False
+        self.MESSAGE = "s".encode('UTF-8')+self.send_load+b"f"+self.client_ip.encode('UTF-8') + b"end\n\tend"      
+        try:
+            self.tcpClientA.sendall(self.MESSAGE.encode('UTF-8'))     
+        except:
+            self.tcpClientA.send(self.MESSAGE)
+
+        #self.clear()
+        print("received:\n")
+        while end == False:
+            
+            data += self.tcpClientA.recv(self.BUFFER_SIZE)
+            if data[-8:] == b"end\n\tend":
+                #print("\nend of data stream")
+                print(data[:-8])
+                end = True
+                break
+        valid_rec_block = True
+
+        self.tcpClientA.close()
+
     def run(self):
         if self.command == "transaction":
             self.send_transaction()
+            return 0 
+        if self.command == "block":
+            self.send_block()
             return 0 
 
 
@@ -385,6 +458,64 @@ class Master_Server(Thread):
             for t in self.threads: 
                 t.join() 
 
+class MiningThread(Thread):
+    def __init__(self, node_parent): 
+        Thread.__init__(self) 
+        self.node_parent = node_parent
+        self.loaded_wallet = node_parent.loaded_wallet
+
+    def perpet_mine(self, prev_block):
+        mempool = []
+        global valid_rec_block
+        valid_rec_block = False
+        while valid_rec_block == False:
+            input("press enter to begin mining next block.")
+            print("perpet mining has started...")
+            block = json.loads(block_to_json(chain.block(prev_block, mempool, self.loaded_wallet.serialized_public, random.randint(0,9999999999))))
+
+            #pprint.pprint(block)
+
+            ver = block_verification.verify_block(prev_block, block)
+            if ver == True:
+                try:
+                    blocks.insert_one(block)
+                except pymongo.errors.DuplicateKeyError:
+                    block_count = blocks.count()
+                    last_block = blocks.find_one({"_id": block_count - 1})
+                    return self.perpet_mine(last_block)
+
+                print("block added !")
+                print(blocks.count()-1)
+                to_send = json.dumps(block).encode('UTF-8')
+                for i in self.node_parent.active_ips:
+                    sender_thread = SendThread(i, "block", to_send)
+                    sender_thread.start()
+                return self.perpet_mine(block)
+            else:
+                print ("block addition failed")
+                return
+        print("reset!!!!!!!!!!!!!!!!!!!!")
+        return self.init_mine()
+
+    def init_mine(self):
+        if blocks.find_one({"_id": 0}) == None:
+            print("creating genesis block.")
+            block = json.loads(block_to_json(chain.genesis_block(self.loaded_wallet.serialized_public, random.randint(0, 9999999999))))
+            blocks.insert_one(block)
+            print(blocks.count())
+            self.perpet_mine(block)
+
+        else:
+            print()
+            print(blocks.count())
+            block_count = blocks.count()
+            last_block = blocks.find_one({"_id": block_count - 1})
+            self.perpet_mine(last_block)
+
+    def run(self):
+        while True:
+            self.init_mine()
+        return 0
 
 """
 master_threads = []

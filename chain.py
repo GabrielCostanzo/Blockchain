@@ -69,7 +69,7 @@ class genesis_block():
 			self.nonce = str(nonce).encode('UTF-8')
 			self.block_hash = test_proof.encode('UTF-8')
 
-		proof_of_work(self, start_nonce, '00000')
+		proof_of_work(self, start_nonce, '000000')
 
 
 class merkle_node():
@@ -156,7 +156,7 @@ class block():
 		for i in self.transactions:
 			data_list.append(i["transaction_data"].encode('UTF-8'))
 		generate_nodes(self, data_list)
-		proof_of_work(self, start_nonce, '00000')
+		proof_of_work(self, start_nonce, '000000')
 		calculate_values(self)
 
 """

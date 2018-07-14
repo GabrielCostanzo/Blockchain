@@ -7,6 +7,8 @@ import pymongo
 from wallet_log import loaded_wallet
 from wallet_log import user_login
 from node_network import block_load_switch
+from json_serialize import block_to_json
+import chain
 from user import wallet
 import pickle
 import json
@@ -115,10 +117,15 @@ class super_node(node):
 			self.thread_master.append(self.server_thread)
 			self.network_connect()
 			self.get_block_count()
-			input("press enter to send transaction")
-			self.send_transaction()
-			input("press enter to exit")
-			os._exit(0)
+			self.get_block_count()
+			mine_thread = node_network.MiningThread(self)
+			mine_thread.start()
+			#input("\npress enter to send transaction\n")
+			#self.send_transaction()
+			#input("\npress enter to send block\n")
+			#self.send_block()
+			#input("\npress enter to exit\n")
+			#os._exit(0)
 
 		start_server(self)
 
@@ -140,6 +147,15 @@ class super_node(node):
 		to_send = json.dumps(self.loaded_wallet.create_transaction(allen.serialized_public, 113, 12)).encode('UTF-8')
 		for i in self.active_ips:
 			sender_thread = node_network.SendThread(i, "transaction", to_send)
+			sender_thread.start()
+
+	def send_block(self):
+		mempool = []
+		block_count = blocks.count()
+		last_block = blocks.find_one({"_id": block_count - 1})
+		to_send = block_to_json(chain.block(last_block, mempool, self.loaded_wallet.serialized_public, 0)).encode('UTF-8')
+		for i in self.active_ips:
+			sender_thread = node_network.SendThread(i, "block", to_send)
 			sender_thread.start()
 
 tim = wallet()

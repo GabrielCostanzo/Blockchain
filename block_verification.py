@@ -86,7 +86,7 @@ def verify_block(json_previous_block, json_block):
 		target_merkle_root = generate_merkle_root(transaction_list)
 
 	target_height = (json_previous_block["height"]) + 1
-	target_zeros  = '00000'
+	target_zeros  = '000000'
 	target_hash_base = previous_block_hash+target_merkle_root+given_nonce
 	target_hash = encrypt_key(target_hash_base, master_key).encode('UTF-8')
 
