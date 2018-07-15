@@ -1,25 +1,19 @@
-import gzip 
 import pickle
 from chain import merkle_node
-from user import encrypt_key
-from user import sign 
-from user import master_key
+from user import encrypt_key, sign, master_key
 from json_serialize import block_to_json
 import json
 from user import transaction as t_obj
 from chain import coinbase_transaction
 from cryptography.hazmat.primitives.asymmetric import ec
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.backends import default_backend
-from pool_manager import update_utxo_pool_single
-from pool_manager import  update_utxo_pool_full
+from pool_manager import update_utxo_pool_single, update_utxo_pool_full
 import pymongo
 
 client = pymongo.MongoClient()
 db = client.database
 
-#collection named posts:
 blocks = db.blocks
 utxo_pool = db.utxo_pool
 
@@ -86,7 +80,7 @@ def verify_block(json_previous_block, json_block):
 		target_merkle_root = generate_merkle_root(transaction_list)
 
 	target_height = (json_previous_block["height"]) + 1
-	target_zeros  = '000000'
+	target_zeros  = '000'
 	target_hash_base = previous_block_hash+target_merkle_root+given_nonce
 	target_hash = encrypt_key(target_hash_base, master_key).encode('UTF-8')
 

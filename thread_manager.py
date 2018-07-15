@@ -1,13 +1,7 @@
-# Echo server program
 import socket 
 from threading import Thread 
 from socketserver import ThreadingMixIn 
-import random 
-import pickle
 import os
-import datetime
-from multiprocessing import Queue
-import time
 
 import pymongo
 import json
@@ -20,14 +14,12 @@ import ipgetter
 import block_verification
 import chain 
 from json_serialize import block_to_json
-from user import encrypt_key
-from user import sign 
-from user import master_key
+from user import encrypt_key, sign, master_key
+
 
 client = pymongo.MongoClient()
 db = client.database
 
-#collection named posts:
 blocks = db.blocks
 ip_addresses = db.ip_addresses
 mem_pool = db.mem_pool
@@ -36,7 +28,7 @@ act_ips = db.act_ips
 block_load_switch = False
 valid_rec_block = False
 
-class ClientThread(Thread): 
+class client_thread(Thread): 
  
     def __init__(self,conn,ip,port): 
         Thread.__init__(self) 
@@ -98,7 +90,6 @@ class ClientThread(Thread):
             mem_pool.insert_one({"_id": encrypt_key(transaction, master_key), "t_data": transaction})
             print("received transaction added to mem_pool")
             print(mem_pool.count())
-            time.sleep(2)
             self.conn.sendall(b"your transaction has been considered by a node.")
             self.conn.sendall(b"end\n\tend")
             self.distribute_transaction(transaction) 
@@ -190,7 +181,7 @@ class ClientThread(Thread):
 # Python TCP Client A
 
 
-class OutThread(Thread): 
+class request_thread(Thread): 
  
     def __init__(self, host, command): 
         Thread.__init__(self) 
@@ -241,7 +232,7 @@ class OutThread(Thread):
         end = False
         blob = ""
         #self.clear()
-        print("received:\n")
+        print("\n\nreceived:\n")
         while end == False:
             data = self.tcpClientA.recv(self.BUFFER_SIZE)
             blob += data.decode('UTF-8')
@@ -288,7 +279,7 @@ class OutThread(Thread):
         end = False
         blob = b""
         #self.clear()
-        print("received:\n")
+        print("\n\nreceived:\n")
         while end == False:
             data = self.tcpClientA.recv(self.BUFFER_SIZE)
             blob += data
@@ -386,7 +377,7 @@ class SendThread(Thread):
             self.tcpClientA.send(self.MESSAGE)
 
         #self.clear()
-        print("received:\n")
+        print("\n\nreceived:\n")
         while end == False:
             data += self.tcpClientA.recv(self.BUFFER_SIZE)
             if data[-8:] == b"end\n\tend":
@@ -408,7 +399,7 @@ class SendThread(Thread):
             self.tcpClientA.send(self.MESSAGE)
 
         #self.clear()
-        print("received:\n")
+        print("\n\nreceived:\n")
         while end == False:
             
             data += self.tcpClientA.recv(self.BUFFER_SIZE)
@@ -430,7 +421,7 @@ class SendThread(Thread):
             return 0 
 
 
-class Master_Server(Thread): 
+class server_thread(Thread): 
     def __init__(self): 
         Thread.__init__(self) 
         # Multithreaded Python server : TCP Server Socket Program Stub
@@ -450,7 +441,7 @@ class Master_Server(Thread):
                 self.tcpServer.listen(4) 
                 #print ("Multithreaded Python server : Waiting for connections from TCP clients...")
                 (conn, (ip,port)) = self.tcpServer.accept() 
-                newthread = ClientThread(conn, ip, port) 
+                newthread = client_thread(conn, ip, port) 
                 newthread.start() 
                 self.threads.append(newthread) 
                 #print(self.threads)
@@ -458,7 +449,7 @@ class Master_Server(Thread):
             for t in self.threads: 
                 t.join() 
 
-class MiningThread(Thread):
+class mining_thread(Thread):
     def __init__(self, node_parent): 
         Thread.__init__(self) 
         self.node_parent = node_parent
@@ -469,9 +460,9 @@ class MiningThread(Thread):
         global valid_rec_block
         valid_rec_block = False
         while valid_rec_block == False:
-            input("press enter to begin mining next block.")
-            print("perpet mining has started...")
-            block = json.loads(block_to_json(chain.block(prev_block, mempool, self.loaded_wallet.serialized_public, random.randint(0,9999999999))))
+            input("\npress enter to begin mining next block.")
+            print("\nperpet mining has started...")
+            block = json.loads(block_to_json(chain.block(prev_block, mempool, self.loaded_wallet.serialized_public, self.node_parent.start_nonce)))
 
             #pprint.pprint(block)
 
@@ -494,13 +485,13 @@ class MiningThread(Thread):
             else:
                 print ("block addition failed")
                 return
-        print("reset!!!!!!!!!!!!!!!!!!!!")
+        print("reset!")
         return self.init_mine()
 
     def init_mine(self):
         if blocks.find_one({"_id": 0}) == None:
             print("creating genesis block.")
-            block = json.loads(block_to_json(chain.genesis_block(self.loaded_wallet.serialized_public, random.randint(0, 9999999999))))
+            block = json.loads(block_to_json(chain.genesis_block(self.loaded_wallet.serialized_public, self.node_parent.start_nonce)))
             blocks.insert_one(block)
             print(blocks.count())
             self.perpet_mine(block)
@@ -516,19 +507,3 @@ class MiningThread(Thread):
         while True:
             self.init_mine()
         return 0
-
-"""
-master_threads = []
-local_host = socket.gethostname()
-
-server_thread = Master_Server()
-server_thread.start()
-master_threads.append(server_thread)
-
-out_client = OutThread(local_host)
-out_client.start()
-master_threads.append(out_client)
-
-for t in master_threads:
-    t.join()
-"""

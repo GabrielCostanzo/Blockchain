@@ -1,17 +1,12 @@
 import datetime
-from user import transaction
-from user import wallet
-from user import encrypt_key
-from user import sign 
-from user import master_key
-import random
+from user import transaction, wallet, encrypt_key, sign, master_key
 import pickle
 from json_serialize import transaction_to_json
 import json
 
 class coinbase_transaction(transaction):
 	def __init__(self, sender_public_key, receiver_public_key, input_amount, fees, block_height):
-		transaction.__init__(self, sender_public_key, receiver_public_key, input_amount, fees)
+		super().__init__(sender_public_key, receiver_public_key, input_amount, fees)
 		self.block_height = block_height
 		self.status = "coinbase"
 		self.transaction_data = pickle.dumps(self).decode('latin1')
@@ -69,7 +64,7 @@ class genesis_block():
 			self.nonce = str(nonce).encode('UTF-8')
 			self.block_hash = test_proof.encode('UTF-8')
 
-		proof_of_work(self, start_nonce, '000000')
+		proof_of_work(self, start_nonce, '000')
 
 
 class merkle_node():
@@ -156,12 +151,6 @@ class block():
 		for i in self.transactions:
 			data_list.append(i["transaction_data"].encode('UTF-8'))
 		generate_nodes(self, data_list)
-		proof_of_work(self, start_nonce, '000000')
+		proof_of_work(self, start_nonce, '000')
 		calculate_values(self)
 
-"""
-def verify_proof(block_result, proof_nounce, proof):
-	my_proof = encrypt_key((block_result+(proof_nounce)), master_key).encode('UTF-8')
-	test_proof = proof
-	return compare_digest(my_proof, test_proof)
-"""

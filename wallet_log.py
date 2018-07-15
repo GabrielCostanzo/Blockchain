@@ -1,20 +1,13 @@
-from user import wallet
-from user import transaction 
-from user import sign
-from user import encrypt_key
-from user import master_key
+from user import wallet, transaction, sign, encrypt_key, master_key
 import time
 import json
 import pickle
 import pymongo
 from tkinter import Tk
 from tkinter.filedialog import askopenfilename
-from json_serialize import wallet_to_json
-from json_serialize import transaction_to_json
+from json_serialize import wallet_to_json, transaction_to_json
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
-
-from tqdm import tqdm 
 
 client = pymongo.MongoClient()
 db = client.database
